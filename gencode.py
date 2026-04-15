@@ -44,7 +44,9 @@ EMPTY_EVENT = ''
 TEMPLATE_RE = re.compile(r'%%(.+)%%')
 
 TEMPLATES_DIR = 'templates'
-DEFAULT_TARGET_DIR = 'src/hsm_robot/controller'
+CONTROLLER_SCRIPT = 'hsm_controller.py'
+CONTROLLER_TARGET_DIR = 'hsm_controller'
+SETUP_TARGET_DIR = '.'
 TEMPLATES_EXTENSION = '.templ'
 
 class ConvertorError(Exception):
@@ -536,14 +538,15 @@ class CodeGenerator:
                 owner = 'st_{}'.format(self.__get_state_name(parent))
             self.__w8(f, '{}.add_transition({})\n'.format(owner, ', '.join(parts)))
 
-    def generate_code(self, target_dir = DEFAULT_TARGET_DIR):
+    def generate_code(self):
         for tmpl in os.listdir(TEMPLATES_DIR):
             tmpl_file = os.path.join(TEMPLATES_DIR, tmpl)
             if tmpl.find(TEMPLATES_EXTENSION) <=0 or not os.path.is_file(tmpl_file):
                 continue
-            target_path = DEFAULT_TARGET_DIR
-            if tmpl.find(PYTHON_SCRIPT_EXTENSION) > 0:
-                target_path = os.path.join(DEFAULT_TARGET_DIR, TARGET_NODE_SRC_DIR)
+            if tmpl.find(CONTROLLER_SCRIPT) == 0:
+                target_path = SCRIPT_TARGET_DIR
+            else:
+                target_path = SETUP_TARGET_DIR
             target_file = os.path.join(target_path, temp.replace(TEMPLATES_EXTENSION,''))
             print('Writing {} as {}'.format(tmpl, target_file))
             self.__apply_template(tmpl_file, target_file)

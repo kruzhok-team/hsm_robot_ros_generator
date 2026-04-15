@@ -1,6 +1,0 @@
-# Timeout in milliseconds
-uint64 timeout
-# Auto-repeat flag
-bool   repeat
----
-bool ok

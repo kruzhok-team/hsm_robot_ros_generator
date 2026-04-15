@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'hsm_controller_%%SM_NAME_LO%%'
+package_name = 'hsm_controller'
 
 setup(
  name=package_name,
@@ -22,7 +22,7 @@ setup(
  tests_require=['pytest'],
  entry_points={
      'console_scripts': [
-             'hsm_controller = hsm_controller_%%SM_NAME_LO%%.hsm_controller:main'
+             'controller = hsm_controller.hsm_controller:main'
      ],
    },
 )

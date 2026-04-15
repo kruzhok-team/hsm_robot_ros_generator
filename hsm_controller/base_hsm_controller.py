@@ -25,19 +25,20 @@ import pysm
 
 import sys
 import rclpy
+import rclpy.node
 
-import hsm_robot.timer
-import hsm_robot.debug
-import hsm_robot.navigator
-import hsm_robot.constants
+import hsm_controller.constants
+import hsm_controller.debug_caller
+import hsm_controller.timer_caller
+import hsm_controller.navigation_caller
 
-import hsm_robot.msg          # will be generated
-import hsm_robot.hsm_messages # will be generated
+import hsm_interface.msg          # will be generated
+import hsm_interface.hsm_messages # will be generated
 
 HSM_CALLERS = {
-    constants.HSM_DEBUG: ros_api.debug.Debug,
-    constants.HSM_NAVIGATION: ros_api.navigation.Navigation,
-    constants.HSM_TIMER: ros_api.timer.Timer
+    hsm_controller.constants.HSM_DEBUG: hsm_controller.debug_caller.Debug,
+    hsm_controller.constants.HSM_NAVIGATION: hsm_controller.navigation_caller.Navigation,
+    hsm_controller.constants.HSM_TIMER: hsm_controller.timer_caller.Timer
 }
 
 class BaseHSMController(rclpy.node.Node):
@@ -45,15 +46,15 @@ class BaseHSMController(rclpy.node.Node):
     def __init__(self, object_name, obj_list,
                  has_tick=False, has_seconds=False, has_minutes=False):
 
-        super().__init__(object_name)
-        self.__msg_listener = self.__node.create_subscription(hsm_robot.msg.SimpleMessage,
-                                                              hsm_robot.constants.MESSAGES_TOPIC,
+        rclpy.node.Node.__init__(self.object_name)
+        self.__msg_listener = self.__node.create_subscription(hsm_interface.msg.SimpleMessage,
+                                                              hsm_controller.constants.MESSAGES_TOPIC,
                                                               self.__simple_message_callback,
-                                                              hsm_robot.constants.QUEUE_LEN)
+                                                              hsm_controller.constants.QUEUE_LEN)
         self.__api_callers = {}
         for name,cls HSM_CALLERS.items():
             if name in obj_list:
-                if name == constants.HSM_TIMER:
+                if name == hsm_controller.constants.HSM_TIMER:
                     self.__api_callers[name] = cls(self,
                                                    has_ticks=has_ticks,
                                                    has_ticks_1s=has_seconds,
@@ -71,4 +72,4 @@ class BaseHSMController(rclpy.node.Node):
 
     def __simple_message_callback(self, msg):
         msg_code = msg.code
-        self.dispatch_event(ros_api.hsm_messages.HSM_MESSAGES[msg_code])
+        self.dispatch_event(hsm_controller.constants.HSM_MESSAGES[msg_code])

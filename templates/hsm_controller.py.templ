@@ -11,19 +11,19 @@
 # -----------------------------------------------------------------------------
 
 import pysm
-import hsm_ros_controller
+import hsm_controller.base_hsm_controller
 
-class %%SM_NAME_CAP%%_HSMController(hsm_ros_controller.BaseHSMController):
+class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMController):
 
     OBJECT_NAME = '%%SM_NAME_LO%%_hsm_controller'
 
     def __init__(self):
-        hsm_ros_controller.BaseHSMController.__init__(self,
-                                                      OBJECT_NAME,
-                                                      (%%SM_HSM_OBJECTS%%,),
-                                                      %%SM_HAS_TICKS%%,
-                                                      %%SM_HAS_SECONDS%%,
-                                                      %%SM_HAS_MINUTES%%)
+        hsm_controller.base_hsm_controller.BaseHSMController.__init__(self,
+						                      OBJECT_NAME,
+                                                	              (%%SM_HSM_OBJECTS%%),
+                                                                      %%SM_HAS_TICKS%%,
+                                                                      %%SM_HAS_SECONDS%%,
+                                                                      %%SM_HAS_MINUTES%%)
 	self.__sm = pysm.StateMachine("%%SM_NAME%%")
         self.__events = {}
         %%SM_EVENTS%%
@@ -41,3 +41,12 @@ class %%SM_NAME_CAP%%_HSMController(hsm_ros_controller.BaseHSMController):
             else:
                 args = {"value": arg}
                 self.__sm.dispatch(pysm.Event(eventstr, **args))
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = %%SM_NAME_CAP%%_HSMController()
+    rclpy.spin(node)
+    rclpy.shutdown()
+
+if __name__ == "__main__":
+    main()

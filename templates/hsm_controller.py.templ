@@ -1,0 +1,43 @@
+# -----------------------------------------------------------------------------
+# The Cyberiada HSM-to-ROS2 library
+#
+# The ROS2-based %%SM_NAME%% state machine controller
+%%GENERATOR_INFO%%
+#
+# Copyright (C) 2026 %%AUTHOR_NAME%% <%%AUTHOR_EMAIL%%>
+#
+# License: %%LICENSE%%
+#
+# -----------------------------------------------------------------------------
+
+import pysm
+import hsm_ros_controller
+
+class %%SM_NAME_CAP%%_HSMController(hsm_ros_controller.BaseHSMController):
+
+    OBJECT_NAME = '%%SM_NAME_LO%%_hsm_controller'
+
+    def __init__(self):
+        hsm_ros_controller.BaseHSMController.__init__(self,
+                                                      OBJECT_NAME,
+                                                      (%%SM_HSM_OBJECTS%%,),
+                                                      %%SM_HAS_TICKS%%,
+                                                      %%SM_HAS_SECONDS%%,
+                                                      %%SM_HAS_MINUTES%%)
+	self.__sm = pysm.StateMachine("%%SM_NAME%%")
+        self.__events = {}
+        %%SM_EVENTS%%
+        %%SM_STATES%%
+        %%SM_TRANSITIONS%%
+        
+    %%SM_ENTRY_HANDLERS%%
+
+    %%SM_GUARDS%%
+    
+    def dispatch_event(self, eventstr, arg):
+        if eventstr is not None and eventstr in self.__events:
+            if arg is None:
+                self.__sm.dispatch(self.__events[eventstr])
+            else:
+                args = {"value": arg}
+                self.__sm.dispatch(pysm.Event(eventstr, **args))

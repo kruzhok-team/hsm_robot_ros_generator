@@ -26,9 +26,6 @@ import api.hsmobject
 class Timer(api.hsmobject.HSMObject):
     """Timer abstract interface API"""
 
-    # default constants
-    __DEFAULT_TICK_TIME = 100
-    
     # events constants
     TIMER_ELAPSED = 'TIMER_ELAPSED'
     TIMER_TICK = 'TIMER_TICK'
@@ -43,9 +40,8 @@ class Timer(api.hsmobject.HSMObject):
                                     TIMER_TICK_1M))) 
         return instance 
     
-    def __init__(self, tick = Timer.__DEFAULT_TICK_TIME):
+    def __init__(self):
         api.hsmobject.HSMObject.__init__(self)
-        self.__tick_time = tick
         
     def start(self, timeout, repeat=False):
         """

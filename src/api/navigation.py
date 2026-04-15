@@ -33,10 +33,6 @@ class Navigation(api.hsmobject.HSMObject):
     COLLISION_WARNING = 'COLLISION_WARNING'
     COLLISION_DETECTED = 'COLLISION_DETECTED'
 
-    # navigation status constants
-    StatusStopped = 0
-    StatusMoving = 1
-
     def __new__(cls):
         instance = super().__new__(cls)
         instance.SIGNALS.union(set((PATH_FOUND,
@@ -48,7 +44,7 @@ class Navigation(api.hsmobject.HSMObject):
 
     def __init__(self):
         api.hsmobject.HSMObject.__init__(self)
-        self.__status = Navigation.StatusStopped
+        self.__moving = False
 
     def move_to_point(self, x, y, theta=None):
         """
@@ -59,15 +55,15 @@ class Navigation(api.hsmobject.HSMObject):
             y:     Y coordinate in map frame (meters)
             theta: Optional orientation (radians)
         """
-        self.__status = Navigation.StatusMoving
+        self.__moving = True
 
     def stop(self):
         """
         Stop navigation
         """
-        self.__status = Navigation.StatusStopped
+        self.__moving = False
 
-    def get_status(self):
+    def is_moving(self):
         """
         Get navigation status
         
@@ -75,5 +71,5 @@ class Navigation(api.hsmobject.HSMObject):
             current status of the navigation object
             
         """
-        return self.__status
+        return self.__moving
 

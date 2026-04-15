@@ -20,7 +20,7 @@
           <y:Geometry height="17.0" width="8.83984375" x="633.8719718005486" y="-65.84481051142936"/>
           <y:Fill color="#333333" color2="#000000" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="12.83984375" y="4.333333333333343">
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="12.83984375" y="4.333333333333336">
             <y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
             </y:LabelModel>
@@ -42,11 +42,15 @@
       <data key="d4" xml:space="preserve"/>
       <data key="d6">
         <y:UMLNoteNode>
-          <y:Geometry height="100.0" width="288.6323883033963" x="259.47508725700436" y="-199.33884355286875"/>
+          <y:Geometry height="100.0" width="288.6323883033963" x="259.47508725700436" y="-253.74219210690222"/>
           <y:Fill color="#FFCC00" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="left" autoSizePolicy="content" fontFamily="Consolas" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#000000" verticalTextPosition="bottom" visible="true" width="119.271484375" x="4.0" xml:space="preserve" y="4.0">Global Initialization
-</y:NodeLabel>
+          <y:NodeLabel alignment="left" autoSizePolicy="content" fontFamily="Consolas" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="87.8125" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#000000" verticalTextPosition="bottom" visible="true" width="229.4453125" x="4.0" xml:space="preserve" y="4.0">Global Parameters
+
+Version: 1.0
+Author: Alexey Fedoseev
+Author e-mail: aleksey@fedoseev.net
+License: LGPL 3.0</y:NodeLabel>
         </y:UMLNoteNode>
       </data>
     </node>
@@ -125,11 +129,11 @@ entry/
                   <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="1.0"/>
                   <y:NodeLabel alignment="center" autoSizePolicy="node_width" backgroundColor="#B7C9E3" configuration="com.yworks.entityRelationship.label.name" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="196.9721300225088" x="0.0" xml:space="preserve" y="4.0">start</y:NodeLabel>
-                  <y:NodeLabel alignment="left" autoSizePolicy="content" configuration="com.yworks.entityRelationship.label.attributes" fontFamily="Consolas" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="73.84375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#000000" verticalTextPosition="bottom" visible="true" width="191.59375" x="4.0" xml:space="preserve" y="4.0">
+                  <y:NodeLabel alignment="left" autoSizePolicy="content" configuration="com.yworks.entityRelationship.label.attributes" fontFamily="Consolas" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="73.84375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#000000" verticalTextPosition="bottom" visible="true" width="192.96484375" x="4.0" xml:space="preserve" y="4.0">
 
 entry/
-navigation.move_to_point(1, 1)
-debug.println('start')</y:NodeLabel>
+Navigation.move_to_point(1, 1)
+Debug.println('start')</y:NodeLabel>
                   <y:StyleProperties>
                     <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="false"/>
                     <y:Property class="java.lang.Boolean" name="doubleBorder" value="false"/>
@@ -145,10 +149,10 @@ debug.println('start')</y:NodeLabel>
                   <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="1.0"/>
                   <y:NodeLabel alignment="center" autoSizePolicy="node_width" backgroundColor="#B7C9E3" configuration="com.yworks.entityRelationship.label.name" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="173.38004478658792" x="0.0" xml:space="preserve" y="4.0">complete</y:NodeLabel>
-                  <y:NodeLabel alignment="left" autoSizePolicy="content" configuration="com.yworks.entityRelationship.label.attributes" fontFamily="Consolas" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="59.875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#000000" verticalTextPosition="bottom" visible="true" width="133.10546875" x="4.0" xml:space="preserve" y="4.0">
+                  <y:NodeLabel alignment="left" autoSizePolicy="content" configuration="com.yworks.entityRelationship.label.attributes" fontFamily="Consolas" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="59.875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#000000" verticalTextPosition="bottom" visible="true" width="134.728515625" x="4.0" xml:space="preserve" y="4.0">
 
 entry/
-debug.println('finish')</y:NodeLabel>
+Debug.println('finish')</y:NodeLabel>
                   <y:StyleProperties>
                     <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="false"/>
                     <y:Property class="java.lang.Boolean" name="doubleBorder" value="false"/>
@@ -164,10 +168,11 @@ debug.println('finish')</y:NodeLabel>
                   <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="1.0"/>
                   <y:NodeLabel alignment="center" autoSizePolicy="node_width" backgroundColor="#B7C9E3" configuration="com.yworks.entityRelationship.label.name" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="173.38004478658792" x="0.0" xml:space="preserve" y="4.0">obstacle</y:NodeLabel>
-                  <y:NodeLabel alignment="left" autoSizePolicy="content" configuration="com.yworks.entityRelationship.label.attributes" fontFamily="Consolas" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="59.875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#000000" verticalTextPosition="bottom" visible="true" width="122.224609375" x="4.0" xml:space="preserve" y="4.0">
+                  <y:NodeLabel alignment="left" autoSizePolicy="content" configuration="com.yworks.entityRelationship.label.attributes" fontFamily="Consolas" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="73.84375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#000000" verticalTextPosition="bottom" visible="true" width="123.84765625" x="4.0" xml:space="preserve" y="4.0">
 
 entry/
-debug.println('ups')</y:NodeLabel>
+Navigation.stop()
+Debug.println('ups')</y:NodeLabel>
                   <y:StyleProperties>
                     <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="false"/>
                     <y:Property class="java.lang.Boolean" name="doubleBorder" value="false"/>
@@ -183,14 +188,14 @@ debug.println('ups')</y:NodeLabel>
       <data key="d4" xml:space="preserve"/>
       <data key="d6">
         <y:UMLNoteNode>
-          <y:Geometry height="112.45632876712313" width="288.6323883033963" x="259.47508725700436" y="-87.05828714701374"/>
+          <y:Geometry height="112.45632876712313" width="288.6323883033963" x="259.47508725700436" y="-141.46163570104721"/>
           <y:Fill color="#FFCC00" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="left" autoSizePolicy="content" fontFamily="Consolas" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="73.84375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#000000" verticalTextPosition="bottom" visible="true" width="225.16796875" x="4.0" xml:space="preserve" y="4.0">ROS2 HSM Modules
+          <y:NodeLabel alignment="left" autoSizePolicy="content" fontFamily="Consolas" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="73.84375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#000000" verticalTextPosition="bottom" visible="true" width="121.544921875" x="4.0" xml:space="preserve" y="4.0">ROS2 HSM Modules
 
-debug = rosapi.ROSDebug()
-timer = rosapi.ROSTimer()
-navigation = rosapi.ROSNavigation()</y:NodeLabel>
+Debug
+Timer
+Navigation</y:NodeLabel>
         </y:UMLNoteNode>
       </data>
     </node>
@@ -218,19 +223,6 @@ navigation = rosapi.ROSNavigation()</y:NodeLabel>
         </y:GenericNode>
       </data>
     </node>
-    <node id="n5">
-      <data key="d4" xml:space="preserve"/>
-      <data key="d6">
-        <y:UMLNoteNode>
-          <y:Geometry height="112.45632876712313" width="288.6323883033963" x="259.47508725700436" y="37.67859802596439"/>
-          <y:Fill color="#FFCC00" transparent="false"/>
-          <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="left" autoSizePolicy="content" fontFamily="Consolas" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="31.9375" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="tl" textColor="#000000" verticalTextPosition="bottom" visible="true" width="53.8515625" x="4.0" xml:space="preserve" y="4.0">On Loop
-
-</y:NodeLabel>
-        </y:UMLNoteNode>
-      </data>
-    </node>
     <edge id="e0" source="n0" target="n2::n0::n0">
       <data key="d10">
         <y:PolyLineEdge>
@@ -251,7 +243,6 @@ navigation = rosapi.ROSNavigation()</y:NodeLabel>
       </data>
     </edge>
     <edge id="e1" source="n2::n0::n1" target="n4">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
@@ -263,7 +254,6 @@ navigation = rosapi.ROSNavigation()</y:NodeLabel>
       </data>
     </edge>
     <edge id="n2::n0::e0" source="n2::n0::n0" target="n2::n0::n1">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
@@ -275,7 +265,6 @@ navigation = rosapi.ROSNavigation()</y:NodeLabel>
       </data>
     </edge>
     <edge id="n2::n0::e1" source="n2::n0::n0" target="n2::n0::n2">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">

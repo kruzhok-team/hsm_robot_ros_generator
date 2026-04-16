@@ -33,8 +33,7 @@ HSM_NAVIGATION = 'Navigation'
 HSM_TIMER =      'Timer'
 
 # HSM events
-import hsm_controller.constants
-import hsm_interface.msg
+from hsm_interface.msg import SimpleMessage
 
 HSM_TICK_EVENT = 'TIMER_TICK'
 HSM_TICK_1S_EVENT = 'TIMER_TICK_1S'
@@ -42,13 +41,13 @@ HSM_TICK_1M_EVENT = 'TIMER_TICK_1M'
 
 HSM_EVENTS = {
     HSM_DEBUG:      (),
-    HSM_TIMER:      {hsm_interface.msg.SimpleMessage.MSG_TIMER_ELAPSED: 'TIMER_ELAPSED',
-                     hsm_interface.msg.SimpleMessage.MSG_TIMER_TICK: HSM_TICK_EVENT,
-                     hsm_interface.msg.SimpleMessage.MSG_TIMER_TICK_1S: HSM_TICK_1S_EVENT,
-                     hsm_interface.msg.SimpleMessage.MSG_TIMER_TICK_1M: HSM_TICK_1M_EVENT}
-    HSM_NAVIGATION: {hsm_interface.msg.SimpleMessage.MSG_NAVIGATION_PATH_FOUND: 'PATH_FOUND'
-                     hsm_interface.msg.SimpleMessage.MSG_NAVIGATION_PATH_NOT_FOUND: 'PATH_NOT_FOUND' 
-                     hsm_interface.msg.SimpleMessage.MSG_NAVIGATION_MOVE_COMPLETED: 'MOVE_COMPLETED'
-                     hsm_interface.msg.SimpleMessage.MSG_NAVIGATION_COLLISION_WARNING: 'COLLISION_WARNING'
-                     hsm_interface.msg.SimpleMessage.MSG_NAVIGATION_COLLISION_DETECTED: 'COLLISION_DETECTED'},
+    HSM_TIMER:      {SimpleMessage.MSG_TIMER_ELAPSED: 'TIMER_ELAPSED',
+                     SimpleMessage.MSG_TIMER_TICK: HSM_TICK_EVENT,
+                     SimpleMessage.MSG_TIMER_TICK_1S: HSM_TICK_1S_EVENT,
+                     SimpleMessage.MSG_TIMER_TICK_1M: HSM_TICK_1M_EVENT}
+    HSM_NAVIGATION: {SimpleMessage.MSG_NAVIGATION_PATH_FOUND: 'PATH_FOUND'
+                     SimpleMessage.MSG_NAVIGATION_PATH_NOT_FOUND: 'PATH_NOT_FOUND' 
+                     SimpleMessage.MSG_NAVIGATION_MOVE_COMPLETED: 'MOVE_COMPLETED'
+                     SimpleMessage.MSG_NAVIGATION_COLLISION_WARNING: 'COLLISION_WARNING'
+                     SimpleMessage.MSG_NAVIGATION_COLLISION_DETECTED: 'COLLISION_DETECTED'},
 }

@@ -27,7 +27,7 @@ import re
 
 import CyberiadaML
 
-from src.hsm_robot.hsm_msg_constants import HSM_EVENTS, HSM_TICK_EVENT
+from constants import HSM_EVENTS, HSM_TICK_EVENT
 
 GLOBAL_PARAM_LABEL = 'global parameters'
 GLOBAL_PARAM_SEPARATOR = ':'

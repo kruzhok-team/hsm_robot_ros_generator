@@ -197,7 +197,7 @@ class CodeGenerator:
                         raise ParserError('The graph {} has state {} with spaces in name "{}"!\n'.format(self.__graph_file,
                                                                                                          element.get_id(),
                                                                                                          state_name))
-                    full_name = element.get_qualified_name().replace('::', '_')
+                    full_name = self.__get_state_name(element)
                     if full_name in uniq_states:
                         raise ParserError('The graph {} has two states with the same qualfied name {}!\n'.format(self.__graph_file,
                                                                                                                  full_name))
@@ -217,16 +217,16 @@ class CodeGenerator:
                                     self.__sm_signals[signal_name] = None
                             self.__local_transitions.append(element)
                         else:
-                            if state_name not in self.__handlers:
-                                self.__handlers[state_name] = {}
+                            if full_name not in self.__handlers:
+                                self.__handlers[full_name] = {}
                             if a.get_type() == CyberiadaML.actionEntry:
                                 entry = 'enter'
                             else:
                                 assert a.get_type() == CyberiadaML.actionExit
                                 entry = 'exit'
-                            if entry not in self.__handlers[state_name]:
-                                handler_name = 'on_st_{}_{}'.format(state_name, entry)
-                                self.__handlers[state_name][entry] = 'self.' + handler_name
+                            if entry not in self.__handlers[full_name]:
+                                handler_name = 'on_st_{}_{}'.format(full_name, entry)
+                                self.__handlers[full_name][entry] = 'self.' + handler_name
                             self.__check_trigger_and_behavior(full_name, None, None, a.get_behavior())
 
             # Find the initial state
@@ -453,7 +453,7 @@ class CodeGenerator:
     def __write_events(self, f):
         self.__w(f, '\n')
         self.__w8(f, '# Events:\n\n')
-        self.__w8(f, 'InitEvent = "{}"\n'.format(INIT_EVENT))
+        self.__w8(f, 'InitEvent = pysm.Event("{}")\n'.format(INIT_EVENT))
         for s, v in self.__sm_signals.items():
             self.__w8(f, '{} = "{}"\n'.format(v, s))
             self.__w8(f, '{ev}Event = pysm.Event({ev})\n'.format(ev=v))

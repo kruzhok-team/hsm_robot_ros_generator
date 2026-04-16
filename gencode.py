@@ -458,7 +458,7 @@ class CodeGenerator:
             self.__w8(f, '{} = "{}"\n'.format(v, s))
             self.__w8(f, '{ev}Event = pysm.Event({ev})\n'.format(ev=v))
         signals_str = map(lambda i: '"{}": {}Event'.format(*i), self.__sm_signals.items())
-        self.__w8(f, 'self.__events = {"{}": InitEvent, {{}}}\n'.format(INIT_EVENT, ', '.join(signals_str)))
+        self.__w8(f, 'self.__events = {{"{}": InitEvent, {}}}\n'.format(INIT_EVENT, ', '.join(signals_str)))
 
     def __write_transitions(self, f):
         self.__w(f, '\n')

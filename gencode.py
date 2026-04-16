@@ -41,7 +41,7 @@ ROS2_HSM_MODULES_LABEL = 'ros2 hsm modules'
 
 EMPTY_EVENT = ''
 
-TEMPLATE_RE = re.compile(r'%%(.+)%%')
+TEMPLATE_RE = re.compile(r'%%([^%]+)%%')
 
 TEMPLATES_DIR = 'templates'
 CONTROLLER_SCRIPT = 'hsm_controller.py'
@@ -275,15 +275,17 @@ class CodeGenerator:
             with open(target_file, 'w') as f:
                 for line in templ.readlines():
                     line = line.strip()
-                    match = TEMPLATE_RE.search(line)
-                    if match:
-                        re_start, re_end = match.span()
-                        template = match.group(1)
-                        self.__w(f, line[0:re_start])
-                        self.__insert_template(f, template, template_file)
-                        self.__w(f, line[re_end:])
-                    else:
-                        self.__w(f, line)
+                    while len(line) > 0:
+                        match = TEMPLATE_RE.search(line)
+                        if match:
+                            re_start, re_end = match.span()
+                            template = match.group(1)
+                            self.__w(f, line[0:re_start])
+                            self.__insert_template(f, template, template_file)
+                            line = line[re_end:]
+                            continue
+                        else:
+                            self.__w(f, line)
                     self.__w(f, '\n')
 
     def __write_generator_info(self, f):

@@ -52,7 +52,7 @@ class BaseHSMController(rclpy.node.Node):
                                                               self.__simple_message_callback,
                                                               hsm_controller.constants.QUEUE_LEN)
         self.__api_callers = {}
-        for name,cls HSM_CALLERS.items():
+        for name,cls in HSM_CALLERS.items():
             if name in obj_list:
                 if name == hsm_controller.constants.HSM_TIMER:
                     self.__api_callers[name] = cls(self,

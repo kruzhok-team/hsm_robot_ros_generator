@@ -46,7 +46,7 @@ class BaseHSMController(rclpy.node.Node):
     def __init__(self, object_name, obj_list,
                  has_tick=False, has_seconds=False, has_minutes=False):
 
-        rclpy.node.Node.__init__(self.object_name)
+        rclpy.node.Node.__init__(self, self.object_name)
         self.__msg_listener = self.__node.create_subscription(hsm_interface.msg.SimpleMessage,
                                                               hsm_controller.constants.MESSAGES_TOPIC,
                                                               self.__simple_message_callback,

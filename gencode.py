@@ -281,7 +281,7 @@ class CodeGenerator:
             with open(target_file, 'w') as f:
                 for line in templ.readlines():
                     line = line.strip()
-                    match = re.search(TEMPLATE_RE)
+                    match = TEMPLATE_RE.search(line)
                     if match:
                         re_start, re_end = match.span()
                         template = match.group(1)

@@ -1,177 +1,124 @@
-#!/usr/bin/env python3
-"""
-Wheels API for CyberiadaML diagrams
-Usage in diagram actions:
-  wheels.forward(0.2)
-  wheels.turn_left(90)
-  wheels.stop()
-"""
+# -----------------------------------------------------------------------------
+# The Cyberiada HSM-to-ROS2 library
+#
+# The ROS2 wheels caller interface
+#
+# Copyright (C) 2026 Alexey Fedoseev <aleksey@fedoseev.net>
+# Copyright (C) 2026 Anastasia Viktorova <viktorovaa.04@gmail.com>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 3 of the License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see https://www.gnu.org/licenses/
+#
+# -----------------------------------------------------------------------------
+
 import rclpy
-from rclpy.node import Node
-from geometry_msgs.msg import Twist
-from typing import Optional
-import time
+import math
 
+from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
+import hsm_interfaces.srv
 
-class Wheels(Node):
-    """Low-level wheel control API - publishes to /cmd_vel"""
+class __ROSWheelsCaller:
+
+    STOP_SERVICE = 'hsm_ros_wheels_stop'
+    FORWARD_SERVICE = 'hsm_ros_wheels_forward'
+    BACK_SERVICE = 'hsm_ros_wheels_back'
+    TURN_RIGHT_SERVICE = 'hsm_ros_wheels_turn_right'
+    TURN_LEFT_SERVICE = 'hsm_ros_wheels_turn_left'
     
-    # Class-level singleton for diagram usage
-    _instance: Optional['Wheels'] = None
-    
-    # Default parameters
-    DEFAULT_LINEAR_SPEED = 0.2      # m/s
-    DEFAULT_ANGULAR_SPEED = 0.5     # rad/s
-    DEFAULT_TURN_ANGLE = 90.0       # degrees
-    
-    # Signals for CyberiadaML generator
-    SIGNALS = {
-        'WHEELS_STOPPED': 'Wheels stopped',
-        'WHEELS_MOVED': 'Movement completed',
-        'WHEELS_TURNED': 'Turn completed',
-    }
-    
+    def __init__(self, node):
+        self.__node = node
+        self.__client_stop = self.__node.create_client(hsm_interfaces.srv.WheelsStop,
+                                                       self.STOP_SERVICE)
+        while not self.__client_stop.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
+            self.__node.get_logger().info('ROS Wheels Caller stop service not available')
+        self.__stop_request = ros_api.srv.WheelsStop.Request()
+
+        self.__client_forward = self.__node.create_client(hsm_interfaces.srv.WheelsForward,
+                                                          self.FORWARD_SERVICE)
+        self.__forward_request = ros_api.srv.WheelsForward.Request()
+        while not self.__client_forward.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
+            self.__node.get_logger().info('ROS Wheels Caller forward service not available')
+
+        self.__client_back = self.__node.create_client(hsm_interfaces.srv.WheelsBack,
+                                                       self.BACK_SERVICE)
+        self.__back_request = ros_api.srv.WheelsBack.Request()
+        while not self.__client_back.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
+            self.__node.get_logger().info('ROS Wheels Caller back service not available')
+        
+        self.__client_turn_right = self.__node.create_client(hsm_interfaces.srv.WheelsTurnRight,
+                                                             self.TURN_RIGHT_SERVICE)
+        self.__client_turn_right_request = ros_api.srv.WheelsTurnRight.Request()
+        while not self.__client_turn_right.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
+            self.__node.get_logger().info('ROS Wheels Caller turn right service not available')
+
+        self.__client_turn_left = self.__node.create_client(hsm_interfaces.srv.WheelsTurnRight,
+                                                           self.TURN_LEFT_SERVICE)
+        self.__client_turn_left_request = ros_api.srv.WheelsTurnLeft.Request()
+        while not self.__client_turn_left.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
+            self.__node.get_logger().info('ROS Wheels Caller turn left service not available')
+
+        self.__node.get_logger().info('ROS Wheels caller inerface initialized')
+
+    def stop(self):
+        self.__client_stop.call_async(self.__stop_request)
+
+    def forward(self, v):
+        self.__forward_request.v = v
+        self.__client_start.call_async(self.__forward_request)
+
+    def back(self, v):
+        self.__back_request.v = v
+        self.__client_start.call_async(self.__back_request)
+
+    def turn_right(self, w):
+        self.__client_turn_right_request.w = w
+        self.__client_start.call_async(self.__client_turn_right_request)
+
+    def turn_left(self, w):
+        self.__client_turn_left_request.w = w
+        self.__client_start.call_async(self.__client_turn_left_request)
+
+class Wheels(__ROSWheelsCaller):
+
+    __object = None
+
     def __new__(cls, *args, **kwargs):
-        """Singleton pattern for diagram usage"""
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-    
-    def __init__(self, node_name: str = 'wheels_api'):
-        if hasattr(self, '_initialized') and self._initialized:
-            return
-        super().__init__(node_name)
-        self._cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
-        self._initialized = True
-        self.get_logger().info("Wheels API initialized")
-    
-    def _publish_vel(self, linear: float, angular: float) -> None:
-        """Internal: publish Twist message"""
-        cmd = Twist()
-        cmd.linear.x = float(linear)
-        cmd.linear.y = 0.0
-        cmd.linear.z = 0.0
-        cmd.angular.x = 0.0
-        cmd.angular.y = 0.0
-        cmd.angular.z = float(angular)
-        self._cmd_pub.publish(cmd)
-    
-    def stop(self) -> bool:
-        """
-        Stop all wheel movement
-        
-        Diagram usage:
-          wheels.stop()
-        
-        Returns:
-            bool: True if command published
-        
-        Generates signal: WHEELS_STOPPED
-        """
-        self._publish_vel(0.0, 0.0)
-        self.get_logger().info("Wheels: stopped")
-        return True
-    
-    def forward(self, distance: Optional[float] = None, speed: Optional[float] = None) -> bool:
-        """
-        Move forward with optional distance control
-        
-        Diagram usage:
-          wheels.forward()              # Default speed
-          wheels.forward(0.5)           # Move 0.5m at default speed
-          wheels.forward(0.5, 0.3)      # Move 0.5m at 0.3 m/s
-        
-        Args:
-            distance: Optional distance in meters (for generator timing)
-            speed: Optional linear speed in m/s
-        
-        Returns:
-            bool: True if command published
-        
-        Note: Distance-based movement requires generator to add timing logic
-        Generates signal: WHEELS_MOVED when distance reached
-        """
-        speed = speed if speed is not None else self.DEFAULT_LINEAR_SPEED
-        self._publish_vel(speed, 0.0)
-        self.get_logger().info(f"Wheels: forward v={speed} m/s")
-        return True
-    
-    def back(self, distance: Optional[float] = None, speed: Optional[float] = None) -> bool:
-        """
-        Move backward with optional distance control
-        
-        Diagram usage:
-          wheels.back()
-          wheels.back(0.3)
-        
-        Args:
-            distance: Optional distance in meters
-            speed: Optional linear speed in m/s
-        
-        Returns:
-            bool: True if command published
-        """
-        speed = speed if speed is not None else self.DEFAULT_LINEAR_SPEED
-        self._publish_vel(-speed, 0.0)
-        self.get_logger().info(f"Wheels: backward v={speed} m/s")
-        return True
-    
-    def turn_right(self, angle: Optional[float] = None, speed: Optional[float] = None) -> bool:
-        """
-        Turn right (clockwise) with optional angle control
-        
-        Diagram usage:
-          wheels.turn_right()           # Default 90°
-          wheels.turn_right(45)         # 45 degrees
-          wheels.turn_right(180, 1.0)   # 180° at 1.0 rad/s
-        
-        Args:
-            angle: Optional angle in degrees (default: 90)
-            speed: Optional angular speed in rad/s
-        
-        Returns:
-            bool: True if command published
-        
-        Note: Angle-based turning requires generator to add timing logic
-        Generates signal: WHEELS_TURNED when angle reached
-        """
-        angle = angle if angle is not None else self.DEFAULT_TURN_ANGLE
-        speed = speed if speed is not None else self.DEFAULT_ANGULAR_SPEED
-        import math
-        angular = -speed  # Negative = clockwise/right
-        self._publish_vel(0.0, angular)
-        self.get_logger().info(f"Wheels: turn_right angle={angle}° speed={speed} rad/s")
-        return True
-    
-    def turn_left(self, angle: Optional[float] = None, speed: Optional[float] = None) -> bool:
-        """
-        Turn left (counter-clockwise) with optional angle control
-        
-        Diagram usage:
-          wheels.turn_left()
-          wheels.turn_left(90)
-        
-        Args:
-            angle: Optional angle in degrees (default: 90)
-            speed: Optional angular speed in rad/s
-        
-        Returns:
-            bool: True if command published
-        """
-        angle = angle if angle is not None else self.DEFAULT_TURN_ANGLE
-        speed = speed if speed is not None else self.DEFAULT_ANGULAR_SPEED
-        angular = speed  # Positive = counter-clockwise/left
-        self._publish_vel(0.0, angular)
-        self.get_logger().info(f"Wheels: turn_left angle={angle}° speed={speed} rad/s")
-        return True
-    
+        if cls.__object is None:
+            cls.__object = super().__new__(self, *args, **kwargs)
+        else:
+            return cls.__object
+
     @classmethod
-    def get_instance(cls) -> 'Wheels':
-        """Get singleton instance for diagram usage"""
-        if cls._instance is None:
-            cls._instance = Wheels()
-        return cls._instance
+    def stop(cls):
+        if cls.__object is not None:
+            cls.__object.stop()
 
+    @classmethod
+    def forward(cls, v):
+        if cls.__object is not None:
+            cls.__object.start(v)
 
-# Global instance for diagram actions
-wheels = Wheels.get_instance()
+    @classmethod
+    def back(cls, v):
+        if cls.__object is not None:
+            cls.__object.back(v)
+
+    @classmethod
+    def turn_right(cls, w):
+        if cls.__object is not None:
+            cls.__object.turn_right(w)
+
+    @classmethod
+    def turn_left(cls, w):
+        if cls.__object is not None:
+            cls.__object.turn_left(w)

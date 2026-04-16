@@ -32,8 +32,7 @@ import hsm_controller.debug_caller
 import hsm_controller.timer_caller
 import hsm_controller.navigation_caller
 
-import hsm_interface.msg          # will be generated
-import hsm_interface.hsm_messages # will be generated
+import hsm_interfaces.msg
 
 HSM_CALLERS = {
     hsm_controller.constants.HSM_DEBUG: hsm_controller.debug_caller.Debug,
@@ -47,7 +46,7 @@ class BaseHSMController(rclpy.node.Node):
                  has_tick=False, has_seconds=False, has_minutes=False):
 
         rclpy.node.Node.__init__(self, self.object_name)
-        self.__msg_listener = self.__node.create_subscription(hsm_interface.msg.SimpleMessage,
+        self.__msg_listener = self.__node.create_subscription(hsm_interfaces.msg.SimpleMessage,
                                                               hsm_controller.constants.MESSAGES_TOPIC,
                                                               self.__simple_message_callback,
                                                               hsm_controller.constants.QUEUE_LEN)

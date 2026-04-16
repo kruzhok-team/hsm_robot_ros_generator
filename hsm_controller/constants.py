@@ -33,7 +33,7 @@ HSM_NAVIGATION = 'Navigation'
 HSM_TIMER =      'Timer'
 
 # HSM events
-from hsm_interface.msg import SimpleMessage
+from hsm_interfaces.msg import SimpleMessage
 
 HSM_TICK_EVENT = 'TIMER_TICK'
 HSM_TICK_1S_EVENT = 'TIMER_TICK_1S'

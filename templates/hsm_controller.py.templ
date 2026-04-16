@@ -4,7 +4,7 @@
 # The ROS2-based %%SM_NAME%% state machine controller
 %%GENERATOR_INFO%%
 #
-# Copyright (C) 2026 %%AUTHOR_NAME%% <%%AUTHOR_EMAIL%%>
+# Copyright (C) %%YEAR%% %%AUTHOR_NAME%% <%%AUTHOR_EMAIL%%>
 #
 # License: %%LICENSE%%
 #
@@ -25,11 +25,11 @@ class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMCo
                                                                       %%SM_HAS_TICKS%%,
                                                                       %%SM_HAS_SECONDS%%,
                                                                       %%SM_HAS_MINUTES%%)
-	self.__sm = pysm.StateMachine("%%SM_NAME%%")
+        self.__sm = pysm.StateMachine("%%SM_NAME%%")
         %%SM_EVENTS%%
         %%SM_STATES%%
         %%SM_TRANSITIONS%%
-	self.__sm.initialize()
+        self.__sm.initialize()
         self.__sm.dispatch(self.InitEvent)
 
     %%SM_ENTRY_HANDLERS%%

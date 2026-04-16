@@ -27,7 +27,6 @@ import math
 
 from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
 import hsm_interfaces.srv
-import hsm_interfaces_api.msg
 
 class __ROSNavigationCaller:
 

@@ -540,7 +540,7 @@ class CodeGenerator:
     def generate_code(self):
         for tmpl in os.listdir(TEMPLATES_DIR):
             tmpl_file = os.path.join(TEMPLATES_DIR, tmpl)
-            if tmpl.find(TEMPLATES_EXTENSION) <=0 or not os.path.is_file(tmpl_file):
+            if tmpl.find(TEMPLATES_EXTENSION) <= 0 or not os.path.isfile(tmpl_file):
                 continue
             if tmpl.find(CONTROLLER_SCRIPT) == 0:
                 target_file = os.path.join(SCRIPT_TARGET_DIR, self.__sm_name_lo + '.py')

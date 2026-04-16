@@ -453,12 +453,12 @@ class CodeGenerator:
     def __write_events(self, f):
         self.__w(f, '\n')
         self.__w8(f, '# Events:\n\n')
-        self.__w8(f, 'self.Init = "{}"\n'.format(INIT_EVENT))
+        self.__w8(f, 'InitEvent = "{}"\n'.format(INIT_EVENT))
         for s, v in self.__sm_signals.items():
             self.__w8(f, '{} = "{}"\n'.format(v, s))
             self.__w8(f, '{ev}Event = pysm.Event({ev})\n'.format(ev=v))
         signals_str = map(lambda i: '"{}": {}Event'.format(*i), self.__sm_signals.items())
-        self.__w8(f, 'self.__events = {{{}}}\n'.format(', '.join(signals_str)))
+        self.__w8(f, 'self.__events = {"{}": InitEvent, {{}}}\n'.format(INIT_EVENT, ', '.join(signals_str)))
 
     def __write_transitions(self, f):
         self.__w(f, '\n')
@@ -493,7 +493,7 @@ class CodeGenerator:
         self.__w8(f, '# External transitions:\n\n')
         parts = ['st_initial',
                  'st_{}'.format(self.__get_state_name(self.__initial)),
-                 'events=[self.Init]']
+                 'events=["{}"]'.format(INIT_EVENT)]
         if self.__initial_behavior:
             parts.append('action=self.on_initial')
         self.__w8(f, 'self.__sm.add_transition({})\n'.format(', '.join(parts)))

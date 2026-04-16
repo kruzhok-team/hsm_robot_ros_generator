@@ -22,7 +22,7 @@ class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMCo
 
     def __init__(self):
         hsm_controller.base_hsm_controller.BaseHSMController.__init__(self,
-						                      OBJECT_NAME,
+						                      self.OBJECT_NAME,
                                                 	              (%%SM_HSM_OBJECTS%%),
                                                                       %%SM_HAS_TICKS%%,
                                                                       %%SM_HAS_SECONDS%%,

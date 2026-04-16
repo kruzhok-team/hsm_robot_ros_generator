@@ -544,9 +544,8 @@ class CodeGenerator:
             if tmpl.find(TEMPLATES_EXTENSION) <=0 or not os.path.is_file(tmpl_file):
                 continue
             if tmpl.find(CONTROLLER_SCRIPT) == 0:
-                target_path = SCRIPT_TARGET_DIR
+                target_file = os.path.join(SCRIPT_TARGET_DIR, self.__sm_name_lo + '.py')
             else:
-                target_path = SETUP_TARGET_DIR
-            target_file = os.path.join(target_path, temp.replace(TEMPLATES_EXTENSION,''))
+                target_file = os.path.join(target_path, SETUP_TARGET_DIR)
             print('Writing {} as {}'.format(tmpl, target_file))
             self.__apply_template(tmpl_file, target_file)

@@ -27,7 +27,7 @@ import re
 
 import CyberiadaML
 
-from hsm_controller.constants import HSM_EVENTS, HSM_TICK_EVENT
+from hsm_controller.constants import HSM_EVENTS, HSM_TICK_EVENT, HSM_TICK_1S_EVENT, HSM_TICK_1M_EVENT
 
 GLOBAL_PARAM_LABEL = 'global parameters'
 GLOBAL_PARAM_SEPARATOR = ':'
@@ -81,9 +81,9 @@ class CodeGenerator:
             'SM_ENTRY_HANDLERS': self.__write_entries,
             'SM_EVENTS': self.__write_events,
             'SM_GUARDS': self.__write_guards,
-            'SM_HAS_TICKS': (hsm_controller.constants.HSM_TICK_EVENT in self.__sm_signals) or (EMPTY_EVENT in self.__sm_signals),
-            'SM_HAS_SECONDS': hsm_controller.constants.HSM_TICK_1S_EVENT in self.__sm_signals,
-            'SM_HAS_MINUTES': hsm_controller.constants.HSM_TICK_1M_EVENT in self.__sm_signals,
+            'SM_HAS_TICKS': (HSM_TICK_EVENT in self.__sm_signals) or (EMPTY_EVENT in self.__sm_signals),
+            'SM_HAS_SECONDS': HSM_TICK_1S_EVENT in self.__sm_signals,
+            'SM_HAS_MINUTES': HSM_TICK_1M_EVENT in self.__sm_signals,
             'SM_HSM_OBJECTS': ', '.join(map(lambda m: "'{}'".format(m), self.__hsm_modules)),
             'SM_MESSAGES_DICT': self.__write_messages_dict,
             'SM_NAME': self.__sm_name,

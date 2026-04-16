@@ -261,20 +261,14 @@ class CodeGenerator:
     def __w8(cls, f, s):
         f.write(' ' * 8 + s)
 
-    @classmethod
-    def __insert_file(cls, f, filename):
-        with open(filename) as input_file:
-            for line in input_file.readlines():
-                cls.__w(f, line)
-
-    def __insert_template(cls, f, template, filename):
+    def __insert_template(self, f, template, filename):
         if template not in self.__template_hanlers:
             raise GeneratorError('Cannot insert template "{}" from file {}: template not found!\n'.format(template, filename))
         handler = self.__template_hanlers[template]
         if callable(handler):
             handler(f)
         else:
-            cls.__w(f, str(handler))
+            self.__w(f, str(handler))
 
     def __apply_template(self, template_file, target_file):
         with open(template_file) as templ:

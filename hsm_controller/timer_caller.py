@@ -26,7 +26,7 @@ import rclpy
 from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
 import hsm_interfaces.srv
 
-class ROSTimerCaller:
+class __ROSTimerCaller:
 
     TICK_SERVICE = 'hsm_ros_timer_init_ticks'
     START_SERVICE = 'hsm_ros_timer_start'

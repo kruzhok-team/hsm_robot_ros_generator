@@ -29,7 +29,7 @@ from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
 import hsm_interfaces.srv
 import hsm_interfaces_api.msg
 
-class ROSNavigationCaller:
+class __ROSNavigationCaller:
 
     MOVE_TO_POINT_SERVICE = 'hsm_ros_navigation_move_to_point'
     STOP_SERVICE = 'hsm_ros_navigation_stop'

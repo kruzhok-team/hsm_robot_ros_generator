@@ -85,7 +85,6 @@ class CodeGenerator:
             'SM_HAS_SECONDS': HSM_TICK_1S_EVENT in self.__sm_signals,
             'SM_HAS_MINUTES': HSM_TICK_1M_EVENT in self.__sm_signals,
             'SM_HSM_OBJECTS': ', '.join(map(lambda m: "'{}'".format(m), self.__hsm_modules)),
-            'SM_MESSAGES_DICT': self.__write_messages_dict,
             'SM_NAME': self.__sm_name,
             'SM_NAME_LO': self.__sm_name_lo,
             'SM_NAME_CAP': self.__sm_name_cap,

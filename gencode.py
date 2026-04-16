@@ -315,8 +315,8 @@ class CodeGenerator:
 
     def __write_imports(self, f):
         for module in self.__hsm_modules:
-            self.__w(f, 'import hsm_controller.{lm}_caller.{m} as {m}\n'.format(lm=module.lower(),
-                                                                            m=module))
+            self.__w(f, 'from hsm_controller.{lm}_caller import {m}\n'.format(lm=module.lower(),
+                                                                              m=module))
         self.__w(f, '\n')
 
     def __write_entry_handler(self, f, state_name, entry, behavior):

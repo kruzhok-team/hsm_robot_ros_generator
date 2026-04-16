@@ -453,7 +453,7 @@ class CodeGenerator:
     def __write_events(self, f):
         self.__w(f, '\n')
         self.__w8(f, '# Events:\n\n')
-        self.__w8(f, 'self.Init = "{}"\n'.format(self.INIT_EVENT))
+        self.__w8(f, 'self.Init = "{}"\n'.format(INIT_EVENT))
         for s, v in self.__sm_signals.items():
             self.__w8(f, '{} = "{}"\n'.format(v, s))
             self.__w8(f, '{ev}Event = pysm.Event({ev})\n'.format(ev=v))

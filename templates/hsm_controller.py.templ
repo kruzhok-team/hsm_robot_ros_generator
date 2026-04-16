@@ -25,15 +25,16 @@ class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMCo
                                                                       %%SM_HAS_SECONDS%%,
                                                                       %%SM_HAS_MINUTES%%)
 	self.__sm = pysm.StateMachine("%%SM_NAME%%")
-        self.__events = {}
         %%SM_EVENTS%%
         %%SM_STATES%%
         %%SM_TRANSITIONS%%
-        
+	self.__sm.initialize()
+        self.__sm.dispatch(self.InitEvent)
+
     %%SM_ENTRY_HANDLERS%%
 
     %%SM_GUARDS%%
-    
+
     def dispatch_event(self, eventstr, arg):
         if eventstr is not None and eventstr in self.__events:
             if arg is None:

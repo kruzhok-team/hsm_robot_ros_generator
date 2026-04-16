@@ -262,9 +262,9 @@ class CodeGenerator:
         f.write(' ' * 8 + s)
 
     def __insert_template(self, f, template, filename):
-        if template not in self.__template_hanlers:
-            raise GeneratorError('Cannot insert template "{}" from file {}: template not found!\n'.format(template, filename))
-        handler = self.__template_hanlers[template]
+        if template not in self.__template_handlers:
+            raise GeneratorError('Cannot insert template "{}" in file {}: template not found!\n'.format(template, filename))
+        handler = self.__template_handlers[template]
         if callable(handler):
             handler(f)
         else:

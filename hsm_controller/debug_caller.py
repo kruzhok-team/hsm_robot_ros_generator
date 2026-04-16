@@ -23,17 +23,17 @@
 
 import rclpy
 
-import hsm_robot.debug
-import hsm_robot.constants
-import hsm_robot.srv
-import hsm_robot.msg
+import constants
+import hsm_interfaces.srv
 
 class __ROSDebugCaller:
-    
+
+    PRINT_SERVICE = 'hsm_ros_debug_print'
+
     def __init__(self, node):
         self.__node = node
-        self.__client_start = self.__node.create_client(ros_api.srv.DebugPrint,
-                                                        msh_robot.debug.ROSDebug.OBJECT_NAME)
+        self.__client_start = self.__node.create_client(hsm_interfaces.srv.DebugPrint,
+                                                        self.PRINT_SERVICE)
         while not self.__client_start.wait_for_service(timeout_sec=ros_api.constants.SERVICE_STARTUP_TIMEOUT):
             self.__node.get_logger().info('ROS Debug caller print service not available')
         self.__print_request = ros_api.srv.DebugPrint.Request()

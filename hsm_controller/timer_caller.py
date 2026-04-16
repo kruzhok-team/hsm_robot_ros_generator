@@ -23,22 +23,24 @@
 
 import rclpy
 
-import robot.timer
-import ros_api.constants
-import ros_api.srv
-import ros_api.msg
+import constants
+import hsm_interfaces.srv
 
 class ROSTimerCaller:
+
+    TICK_SERVICE = 'hsm_ros_timer_init_ticks'
+    START_SERVICE = 'hsm_ros_timer_start'
+    STOP_SERVICE = 'hsm_ros_timer_stop'
     
     def __init__(self, node, **kwargs):
         self.__node = node
-        self.__client_start = self.__node.create_client(ros_api.srv.TimerStart,
-                                                        robot.timer.ROSTimer.OBJECT_NAME)
+        self.__client_start = self.__node.create_client(hsm_interfaces.srv.TimerStart,
+                                                        self.START_SERVICE)
         while not self.__client_start.wait_for_service(timeout_sec=ros_api.constants.SERVICE_STARTUP_TIMEOUT):
             self.__node.get_logger().info('ROS Timer caller start service not available')
         self.__start_request = ros_api.srv.TimerStart.Request()
-        self.__client_stop = self.__node.create_client(ros_api.srv.TimerStop,
-                                                       robot.timer.ROSTimer.OBJECT_NAME)
+        self.__client_stop = self.__node.create_client(hsm_interfaces.srv.TimerStop,
+                                                       self.STOP_SERVICE)
         self.__stop_request = ros_api.srv.TimerStop.Request()
         while not self.__client_stop.wait_for_service(timeout_sec=ros_api.constants.SERVICE_STARTUP_TIMEOUT):
             self.__node.get_logger().info('ROS Timer caller stop service not available')
@@ -48,8 +50,8 @@ class ROSTimerCaller:
         self.__node.get_logger().info('ROS Timer caller inerface initialized')
 
     def __init_ticks(self, has_ticks, has_ticks_1s, has_ticks_1m):
-        client = self.__node.create_client(ros_api.srv.TimerTick,
-                                           robot.timer.ROSTimer.OBJECT_NAME)
+        client = self.__node.create_client(hsm_interfaces.srv.TimerTick,
+                                           self.TICK_SERVICE)
         while not client.wait_for_service(timeout_sec=ros_api.constants.SERVICE_STARTUP_TIMEOUT):
             self.__node.get_logger().info('ROS Timer tick service not available')
         request = ros_api.srv.TimerTick.Request()

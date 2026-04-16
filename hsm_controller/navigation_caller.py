@@ -25,22 +25,24 @@ import rclpy
 from geometry_msgs.msg import PoseStamped
 import math
 
-import robot.navigation
-import ros_api.constants
-import ros_api.srv
-import ros_api.msg
+import constants
+import hsm_interfaces.srv
+import hsm_interfaces_api.msg
 
 class ROSNavigationCaller:
+
+    MOVE_TO_POINT_SERVICE = 'hsm_ros_navigation_move_to_point'
+    STOP_SERVICE = 'hsm_ros_navigation_stop'
     
     def __init__(self, node):
         self.__node = node
-        self.__client_move_to_point = self.__node.create_client(ros_api.srv.NavigationMoveToPoint,
-                                                                robot.navigation.ROSNavigation.OBJECT_NAME)
+        self.__client_move_to_point = self.__node.create_client(hsm_interfaces.srv.NavigationMoveToPoint,
+                                                                self.MOVE_TO_POINT_SERVICE)
         while not self.__client_move_to_point.wait_for_service(timeout_sec=ros_api.constants.SERVICE_STARTUP_TIMEOUT):
             self.__node.get_logger().info('ROS Navigation Caller move_to_point service not available')
         self.__start_request = ros_api.srv.NavigationMoveToPoint.Request()
-        self.__client_stop = self.__node.create_client(ros_api.srv.NavigationStop,
-                                                       robot.navigation.ROSNavigation.OBJECT_NAME)
+        self.__client_stop = self.__node.create_client(hsm_interfaces.srv.NavigationStop,
+                                                       self.STOP_SERVICE)
         self.__stop_request = ros_api.srv.NavigationStop.Request()
         while not self.__client_stop.wait_for_service(timeout_sec=ros_api.constants.SERVICE_STARTUP_TIMEOUT):
             self.__node.get_logger().info('ROS Navigation stop service not available')

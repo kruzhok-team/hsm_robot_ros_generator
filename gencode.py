@@ -45,7 +45,7 @@ TEMPLATE_RE = re.compile(r'%%([^%]+)%%')
 
 TEMPLATES_DIR = 'templates'
 CONTROLLER_SCRIPT = 'hsm_controller.py'
-CONTROLLER_TARGET_DIR = 'hsm_controller'
+SCRIPT_TARGET_DIR = 'hsm_controller'
 SETUP_TARGET_DIR = '.'
 TEMPLATES_EXTENSION = '.templ'
 

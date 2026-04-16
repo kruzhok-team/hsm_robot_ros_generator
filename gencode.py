@@ -40,6 +40,7 @@ GLOBAL_PARAM_ALL = (GLOBAL_PARAM_VERSION, GLOBAL_PARAM_AUTHOR, GLOBAL_PARAM_EMAI
 ROS2_HSM_MODULES_LABEL = 'ros2 hsm modules'
 
 EMPTY_EVENT = ''
+INIT_EVENT = 'INIT'
 
 TEMPLATE_RE = re.compile(r'%%([^%]+)%%')
 
@@ -96,10 +97,6 @@ class CodeGenerator:
     def __load_graph(self, graph_file, **kwargs):
         try:
             self.__graph_file = graph_file
-
-            # Generator options
-            self.__exit_on_term = kwargs['exit_on_term'] if 'exit_on_term' in kwargs else False
-            self.__allow_empty_trans = kwargs['allow_empty_trans'] if 'allow_empty_trans' in kwargs else False
 
             # Read and parse GraphML file
             self.__doc = CyberiadaML.LocalDocument()
@@ -220,6 +217,16 @@ class CodeGenerator:
                                     self.__sm_signals[signal_name] = None
                             self.__local_transitions.append(element)
                         else:
+                            if state_name not in self.__handlers:
+                                self.__handlers[state_name] = {}
+                            if a.get_type() == CyberiadaML.actionEntry:
+                                entry = 'enter'
+                            else:
+                                assert a.get_type() == CyberiadaML.actionExit
+                                entry = 'exit'
+                            if entry not in self.__handlers[state_name]:
+                                handler_name = 'on_st_{}_{}'.format(state_name, entry)
+                                self.__handlers[state_name][entry] = 'self.' + handler_name
                             self.__check_trigger_and_behavior(full_name, None, None, a.get_behavior())
 
             # Find the initial state
@@ -305,10 +312,6 @@ class CodeGenerator:
 
     def __write_entry_handler(self, f, state_name, entry, behavior):
         handler_name = 'on_st_{}_{}'.format(state_name, entry)
-        if state_name not in self.__handlers:
-            self.__handlers[state_name] = {}
-        if entry not in self.__handlers[state_name]:
-            self.__handlers[state_name][entry] = 'self.' + handler_name
         self.__w(f, '\n')
         self.__w4(f, 'def {}(self, *_):\n'.format(handler_name))
         # self.__w4(f, 'def {}(self, state, event):\n'.format(handler_name))
@@ -317,7 +320,7 @@ class CodeGenerator:
 
     def __write_entries_recursively(self, f, state):
         for a in state.get_actions():
-            if a.get_type() == CyberiadaML.actionEntry:
+            if a.get_type() == CyberiadaML.actionEntry or:
                 self.__write_entry_handler(f, self.__get_state_name(state), 'enter', a.get_behavior())
             elif a.get_type() == CyberiadaML.actionExit:
                 self.__write_entry_handler(f, self.__get_state_name(state), 'exit', a.get_behavior())
@@ -450,6 +453,7 @@ class CodeGenerator:
     def __write_events(self, f):
         self.__w(f, '\n')
         self.__w8(f, '# Events:\n\n')
+        self.__w8(f, 'self.Init = "{}"\n'.format(self.INIT_EVENT))
         for s, v in self.__sm_signals.items():
             self.__w8(f, '{} = "{}"\n'.format(v, s))
             self.__w8(f, '{ev}Event = pysm.Event({ev})\n'.format(ev=v))

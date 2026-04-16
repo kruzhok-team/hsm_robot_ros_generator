@@ -283,9 +283,9 @@ class CodeGenerator:
                             self.__w(f, line[0:re_start])
                             self.__insert_template(f, template, template_file)
                             line = line[re_end:]
-                            continue
                         else:
                             self.__w(f, line)
+                            break
                     self.__w(f, '\n')
 
     def __write_generator_info(self, f):

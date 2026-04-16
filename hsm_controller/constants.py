@@ -26,6 +26,7 @@ FRAME_ID = 'hsm_ros_api'        # the ROS2 frame for HSM messages
 MSG_QUEUE_LEN = 10              # the ROS2 messages queue length
 LOOP_TIME = 0.05                # loop timer
 TICK_LEN = 0.1                  # tick event timer
+SERVICE_STARTUP_TIMEOUT = 1.0   # server initialization timeout
 
 # HSM modules names
 HSM_DEBUG =      'Debug'

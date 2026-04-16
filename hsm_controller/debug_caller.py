@@ -23,7 +23,7 @@
 
 import rclpy
 
-import constants
+from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
 import hsm_interfaces.srv
 
 class __ROSDebugCaller:
@@ -34,7 +34,7 @@ class __ROSDebugCaller:
         self.__node = node
         self.__client_start = self.__node.create_client(hsm_interfaces.srv.DebugPrint,
                                                         self.PRINT_SERVICE)
-        while not self.__client_start.wait_for_service(timeout_sec=ros_api.constants.SERVICE_STARTUP_TIMEOUT):
+        while not self.__client_start.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
             self.__node.get_logger().info('ROS Debug caller print service not available')
         self.__print_request = ros_api.srv.DebugPrint.Request()
         self.__node.get_logger().info('ROS Debug caller inerface initialized')

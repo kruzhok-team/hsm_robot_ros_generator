@@ -274,7 +274,7 @@ class CodeGenerator:
         with open(template_file) as templ:
             with open(target_file, 'w') as f:
                 for line in templ.readlines():
-                    line = line.strip()
+                    line = line.rstrip()
                     while len(line) > 0:
                         match = TEMPLATE_RE.search(line)
                         if match:

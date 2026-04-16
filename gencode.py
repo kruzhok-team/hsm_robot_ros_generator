@@ -320,7 +320,7 @@ class CodeGenerator:
 
     def __write_entries_recursively(self, f, state):
         for a in state.get_actions():
-            if a.get_type() == CyberiadaML.actionEntry or:
+            if a.get_type() == CyberiadaML.actionEntry:
                 self.__write_entry_handler(f, self.__get_state_name(state), 'enter', a.get_behavior())
             elif a.get_type() == CyberiadaML.actionExit:
                 self.__write_entry_handler(f, self.__get_state_name(state), 'exit', a.get_behavior())

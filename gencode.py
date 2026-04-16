@@ -94,7 +94,7 @@ class CodeGenerator:
             'SM_STATES': self.__write_states,
             'SM_TRANSITIONS': self.__write_transitions,
             'VERSION': self.__global_parameters[GLOBAL_PARAM_VERSION] if GLOBAL_PARAM_VERSION in self.__global_parameters else '',
-            'YEAR': datetime.datetime.now().year()
+            'YEAR': datetime.date.today().year
         }
 
     def __load_graph(self, graph_file, **kwargs):

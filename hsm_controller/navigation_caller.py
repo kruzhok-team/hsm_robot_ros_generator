@@ -51,7 +51,7 @@ class __ROSNavigationCaller:
     def move_to_point(self, x, y, theta=None):
         pose = PoseStamped()
         pose.header.frame_id = "map"
-        pose.header.stamp = node.get_clock().now().to_msg()
+        pose.header.stamp = self.__node.get_clock().now().to_msg()
         pose.pose.position.x = float(x)
         pose.pose.position.y = float(y)
         pose.pose.position.z = 0.0

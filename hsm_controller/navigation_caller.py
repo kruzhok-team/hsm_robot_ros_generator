@@ -88,7 +88,7 @@ class Navigation(__ROSNavigationCaller):
     @classmethod
     def move_to_point(cls, x, y, theta=None):
         if cls.__object is not None:
-            cls.__object.start(x, y, theta)
+            cls.__object.move_to_point(x, y, theta)
 
     @classmethod
     def stop(cls):

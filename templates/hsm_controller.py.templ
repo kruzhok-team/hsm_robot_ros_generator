@@ -33,7 +33,7 @@ class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMCo
         %%SM_STATES%%
         %%SM_TRANSITIONS%%
         self.__sm.initialize()
-        self.__sm.dispatch(self.InitEvent)
+        self.__sm.dispatch(InitEvent)
 
     %%SM_ENTRY_HANDLERS%%
 

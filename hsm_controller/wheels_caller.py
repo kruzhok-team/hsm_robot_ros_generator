@@ -93,7 +93,7 @@ class Wheels(__ROSWheelsCaller):
 
     def __new__(cls, *args, **kwargs):
         if cls.__object is None:
-            cls.__object = super().__new__(self, *args, **kwargs)
+            cls.__object = super().__new__(cls, *args, **kwargs)
         else:
             return cls.__object
 

@@ -80,7 +80,7 @@ class Timer(__ROSTimerCaller):
 
     def __new__(cls, *args, **kwargs):
         if cls.__object is None:
-            cls.__object = super().__new__(cls, *args, **kwargs)
+            cls.__object = super().__new__(cls)
         else:
             return cls.__object
     

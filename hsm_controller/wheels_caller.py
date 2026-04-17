@@ -100,24 +100,24 @@ class Wheels(__ROSWheelsCaller):
     @classmethod
     def stop(cls):
         if cls.__object is not None:
-            cls.__object.stop()
+            __ROSWheelsCaller.stop(cls.__object)
 
     @classmethod
     def forward(cls, v):
         if cls.__object is not None:
-            cls.__object.start(v)
+            __ROSWheelsCaller.forward(cls.__object, v)
 
     @classmethod
     def back(cls, v):
         if cls.__object is not None:
-            cls.__object.back(v)
+            __ROSWheelsCaller.back(cls.__object, v)
 
     @classmethod
     def turn_right(cls, w):
         if cls.__object is not None:
-            cls.__object.turn_right(w)
+            __ROSWheelsCaller.turn_right(cls.__object, w)
 
     @classmethod
     def turn_left(cls, w):
         if cls.__object is not None:
-            cls.__object.turn_left(w)
+            __ROSWheelsCaller.turn_left(cls.__object, w)

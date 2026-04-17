@@ -59,9 +59,9 @@ class Debug(__ROSDebugCaller):
     @classmethod
     def print(cls, s):
         if cls.__object is not None:
-            cls.__object.print(s)
+            __ROSDebugCaller.print(cls.__object, s)
 
     @classmethod
     def println(cls, s):
         if cls.__object is not None:
-            cls.__object.println(s)
+            __ROSDebugCaller.println(cls.__object, s)

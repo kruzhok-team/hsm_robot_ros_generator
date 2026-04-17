@@ -87,9 +87,9 @@ class Timer(__ROSTimerCaller):
     @classmethod
     def start(cls, timeout, repeat = False):
         if cls.__object is not None:
-            cls.__object.start(timeout, repeat)
+            __ROSTimerCaller.start(cls.__object, timeout, repeat)
 
     @classmethod
     def stop(cls):
         if cls.__object is not None:
-            cls.__object.stop()
+            __ROSTimerCaller.stop(cls.__object)

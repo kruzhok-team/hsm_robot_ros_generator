@@ -26,7 +26,7 @@ import rclpy
 from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
 import hsm_interfaces.srv
 
-class __ROSDebugCaller:
+class ROSDebugCaller:
 
     PRINT_SERVICE = 'hsm_ros_debug_print'
 
@@ -46,7 +46,7 @@ class __ROSDebugCaller:
     def println(self, s):
         self.print(s + '\n')
 
-class Debug(__ROSDebugCaller):
+class Debug(ROSDebugCaller):
 
     __object = None
 
@@ -59,9 +59,9 @@ class Debug(__ROSDebugCaller):
     @classmethod
     def print(cls, s):
         if cls.__object is not None:
-            __ROSDebugCaller.print(cls.__object, s)
+            ROSDebugCaller.print(cls.__object, s)
 
     @classmethod
     def println(cls, s):
         if cls.__object is not None:
-            __ROSDebugCaller.println(cls.__object, s)
+            ROSDebugCaller.println(cls.__object, s)

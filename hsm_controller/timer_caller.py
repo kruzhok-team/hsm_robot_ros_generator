@@ -26,7 +26,7 @@ import rclpy
 from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
 import hsm_interfaces.srv
 
-class __ROSTimerCaller:
+class ROSTimerCaller:
 
     TICK_SERVICE = 'hsm_ros_timer_init_ticks'
     START_SERVICE = 'hsm_ros_timer_start'
@@ -74,7 +74,7 @@ class __ROSTimerCaller:
     def stop(self):
         self.__client_stop.call_async(self.__stop_request)
 
-class Timer(__ROSTimerCaller):
+class Timer(ROSTimerCaller):
 
     __object = None
 
@@ -87,9 +87,9 @@ class Timer(__ROSTimerCaller):
     @classmethod
     def start(cls, timeout, repeat = False):
         if cls.__object is not None:
-            __ROSTimerCaller.start(cls.__object, timeout, repeat)
+            ROSTimerCaller.start(cls.__object, timeout, repeat)
 
     @classmethod
     def stop(cls):
         if cls.__object is not None:
-            __ROSTimerCaller.stop(cls.__object)
+            ROSTimerCaller.stop(cls.__object)

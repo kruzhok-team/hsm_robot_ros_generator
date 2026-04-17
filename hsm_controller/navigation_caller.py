@@ -28,7 +28,7 @@ import math
 from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
 import hsm_interfaces.srv
 
-class __ROSNavigationCaller:
+class ROSNavigationCaller:
 
     MOVE_TO_POINT_SERVICE = 'hsm_ros_navigation_move_to_point'
     STOP_SERVICE = 'hsm_ros_navigation_stop'
@@ -75,7 +75,7 @@ class __ROSNavigationCaller:
     def is_moving(self):
         return self.__moving
 
-class Navigation(__ROSNavigationCaller):
+class Navigation(ROSNavigationCaller):
 
     __object = None
 
@@ -88,9 +88,9 @@ class Navigation(__ROSNavigationCaller):
     @classmethod
     def move_to_point(cls, x, y, theta=None):
         if cls.__object is not None:
-            __ROSNavigationCaller.move_to_point(cls.__object, x, y, theta)
+            ROSNavigationCaller.move_to_point(cls.__object, x, y, theta)
 
     @classmethod
     def stop(cls):
         if cls.__object is not None:
-            __ROSNavigationCaller.stop(cls.__object)
+            ROSNavigationCaller.stop(cls.__object)

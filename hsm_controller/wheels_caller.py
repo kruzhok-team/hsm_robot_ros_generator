@@ -26,7 +26,7 @@ import math
 from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
 import hsm_interfaces.srv
 
-class __ROSWheelsCaller:
+class ROSWheelsCaller:
 
     STOP_SERVICE = 'hsm_ros_wheels_stop'
     FORWARD_SERVICE = 'hsm_ros_wheels_forward'
@@ -87,7 +87,7 @@ class __ROSWheelsCaller:
         self.__client_turn_left_request.w = w
         self.__client_start.call_async(self.__client_turn_left_request)
 
-class Wheels(__ROSWheelsCaller):
+class Wheels(ROSWheelsCaller):
 
     __object = None
 
@@ -100,24 +100,24 @@ class Wheels(__ROSWheelsCaller):
     @classmethod
     def stop(cls):
         if cls.__object is not None:
-            __ROSWheelsCaller.stop(cls.__object)
+            ROSWheelsCaller.stop(cls.__object)
 
     @classmethod
     def forward(cls, v):
         if cls.__object is not None:
-            __ROSWheelsCaller.forward(cls.__object, v)
+            ROSWheelsCaller.forward(cls.__object, v)
 
     @classmethod
     def back(cls, v):
         if cls.__object is not None:
-            __ROSWheelsCaller.back(cls.__object, v)
+            ROSWheelsCaller.back(cls.__object, v)
 
     @classmethod
     def turn_right(cls, w):
         if cls.__object is not None:
-            __ROSWheelsCaller.turn_right(cls.__object, w)
+            ROSWheelsCaller.turn_right(cls.__object, w)
 
     @classmethod
     def turn_left(cls, w):
         if cls.__object is not None:
-            __ROSWheelsCaller.turn_left(cls.__object, w)
+            ROSWheelsCaller.turn_left(cls.__object, w)

@@ -49,7 +49,7 @@ class BaseHSMController(rclpy.node.Node):
         self.__msg_listener = self.create_subscription(hsm_interfaces.msg.SimpleMessage,
                                                        hsm_controller.constants.MESSAGES_TOPIC,
                                                        self.__simple_message_callback,
-                                                       hsm_controller.constants.QUEUE_LEN)
+                                                       hsm_controller.constants.MSG_QUEUE_LEN)
         self.__api_callers = {}
         for name,cls in HSM_CALLERS.items():
             if name in obj_list:

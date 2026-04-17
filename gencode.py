@@ -304,7 +304,7 @@ class CodeGenerator:
 
     @classmethod
     def __get_state_name(cls, state):
-        return state.get_qualified_name().replace('::', '_')
+        return state.get_qualified_name().replace('::', '_').replace('-', '_')
     @classmethod
     def __parse_trigger(cls, trigger):
         if trigger.find('(') > 0:

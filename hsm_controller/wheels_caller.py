@@ -3,7 +3,6 @@
 #
 # The ROS2 wheels caller interface
 #
-# Copyright (C) 2026 Alexey Fedoseev <aleksey@fedoseev.net>
 # Copyright (C) 2026 Anastasia Viktorova <viktorovaa.04@gmail.com>
 #
 # This program is free software; you can redistribute it and/or

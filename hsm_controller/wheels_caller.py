@@ -44,25 +44,25 @@ class ROSWheelsCaller:
                                                            self.STOP_SERVICE)
             while not self.__client_stop.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
                 self.__node.get_logger().info('ROS Wheels Caller stop service not available')
-            self.__stop_request = ros_api.srv.WheelsStop.Request()
+            self.__stop_request = hsm_interfaces.srv.WheelsStop.Request()
             self.__client_forward = self.__node.create_client(hsm_interfaces.srv.WheelsForward,
                                                               self.FORWARD_SERVICE)
-            self.__forward_request = ros_api.srv.WheelsForward.Request()
+            self.__forward_request = hsm_interfaces.srv.WheelsForward.Request()
             while not self.__client_forward.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
                 self.__node.get_logger().info('ROS Wheels Caller forward service not available')
             self.__client_back = self.__node.create_client(hsm_interfaces.srv.WheelsBack,
                                                            self.BACK_SERVICE)
-            self.__back_request = ros_api.srv.WheelsBack.Request()
+            self.__back_request = hsm_interfaces.srv.WheelsBack.Request()
             while not self.__client_back.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
                 self.__node.get_logger().info('ROS Wheels Caller back service not available')
             self.__client_turn_right = self.__node.create_client(hsm_interfaces.srv.WheelsTurnRight,
                                                                  self.TURN_RIGHT_SERVICE)
-            self.__client_turn_right_request = ros_api.srv.WheelsTurnRight.Request()
+            self.__client_turn_right_request = hsm_interfaces.srv.WheelsTurnRight.Request()
             while not self.__client_turn_right.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
                 self.__node.get_logger().info('ROS Wheels Caller turn right service not available')
             self.__client_turn_left = self.__node.create_client(hsm_interfaces.srv.WheelsTurnRight,
                                                                 self.TURN_LEFT_SERVICE)
-            self.__client_turn_left_request = ros_api.srv.WheelsTurnLeft.Request()
+            self.__client_turn_left_request = hsm_interfaces.srv.WheelsTurnLeft.Request()
             while not self.__client_turn_left.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
                 self.__node.get_logger().info('ROS Wheels Caller turn left service not available')
             self.__node.get_logger().info('ROS Wheels caller inerface initialized')

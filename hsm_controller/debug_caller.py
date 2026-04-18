@@ -40,7 +40,7 @@ class ROSDebugCaller:
                                                             self.PRINT_SERVICE)
             while not self.__client_start.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
                 self.__node.get_logger().info('ROS Debug caller print service not available')
-            self.__print_request = ros_api.srv.DebugPrint.Request()
+            self.__print_request = hsm_interfaces.srv.DebugPrint.Request()
             self.__node.get_logger().info('ROS Debug caller inerface initialized')
             Debug = self
 

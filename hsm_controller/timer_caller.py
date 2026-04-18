@@ -42,10 +42,10 @@ class ROSTimerCaller:
                                                             self.START_SERVICE)
             while not self.__client_start.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
                 self.__node.get_logger().info('ROS Timer caller start service not available')
-            self.__start_request = ros_api.srv.TimerStart.Request()
+            self.__start_request = hsm_interfaces.srv.TimerStart.Request()
             self.__client_stop = self.__node.create_client(hsm_interfaces.srv.TimerStop,
                                                            self.STOP_SERVICE)
-            self.__stop_request = ros_api.srv.TimerStop.Request()
+            self.__stop_request = hsm_interfaces.srv.TimerStop.Request()
             while not self.__client_stop.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
                 self.__node.get_logger().info('ROS Timer caller stop service not available')
             self.__init_ticks('has_ticks' in kwargs and kwargs['has_ticks'],
@@ -59,7 +59,7 @@ class ROSTimerCaller:
                                            self.TICK_SERVICE)
         while not client.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
             self.__node.get_logger().info('ROS Timer tick service not available')
-        request = ros_api.srv.TimerTick.Request()
+        request = hsm_interfaces.srv.TimerTick.Request()
         request.run_ticks = has_ticks
         request.run_ticks_1sec = has_ticks_1s
         request.run_ticks_1min = has_ticks_1m

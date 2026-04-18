@@ -317,7 +317,7 @@ class CodeGenerator:
     def __write_hsm_imports(self, f):
         for module in self.__hsm_modules:
             self.__w(f, 'import hsm_controller.{lm}_caller\n'.format(lm=module.lower()))
-            self.__w(f, '{} = None'.format(module))
+            self.__w(f, '{} = None\n'.format(module))
         self.__w(f, '\n')
 
     def __write_hsm_inits(self, f):

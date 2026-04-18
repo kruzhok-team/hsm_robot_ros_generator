@@ -63,10 +63,10 @@ class ROSNavigationCaller:
 
         if theta is not None:
             # Convert angle to quaternion
-            goal.pose.orientation.z = math.sin(float(theta) / 2)
-            goal.pose.orientation.w = math.cos(float(theta) / 2)
+            pose.orientation.z = math.sin(float(theta) / 2)
+            pose.orientation.w = math.cos(float(theta) / 2)
         else:
-            goal.pose.orientation.w = 1.0
+            pose.orientation.w = 1.0
         
         self.__move_to_point_request.pose = pose
         self.__client_start.call_async(self.__move_to_point_request)

@@ -323,8 +323,8 @@ class CodeGenerator:
     def __write_hsm_inits(self, f):
         self.__w(f, '\n')
         for module in self.__hsm_modules:
-            self.__w8(f, 'global {m}; m = hsm_controller.{lm}_caller.{m}\n'.format(lm=module.lower(),
-                                                                                   m=module))
+            self.__w8(f, 'global {m}; {m} = hsm_controller.{lm}_caller.{m}\n'.format(lm=module.lower(),
+                                                                                     m=module))
 
     def __write_entry_handler(self, f, state_name, entry, behavior):
         handler_name = 'on_st_{}_{}'.format(state_name, entry)

@@ -74,8 +74,10 @@ class BaseHSMController(rclpy.node.Node):
 
     def __simple_message_callback(self, msg):
         msg_code = msg.code
-        if msg_code in hsm_controller.constants.HSM_EVENTS:
-            self.dispatch_event(hsm_controller.constants.HSM_EVENTS[msg_code])
-        else:
-            self.get_logger().warn('Unknown message code: {}'.format(msg_code))
+        for module in self.__api_callers.keys():
+            events = hsm_controller.constants.HSM_EVENTS[module]
+            if msg_code in events:
+                self.dispatch_event(events[msg_code])
+                return
+        self.get_logger().warn('Unknown message code: {}'.format(msg_code))
 

@@ -28,6 +28,7 @@ class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMCo
                                                                       %%SM_HAS_TICKS%%,
                                                                       %%SM_HAS_SECONDS%%,
                                                                       %%SM_HAS_MINUTES%%)
+        %%SM_HSM_INIT%%
         self.__sm = pysm.StateMachine("%%SM_NAME%%")
         %%SM_EVENTS%%
         %%SM_STATES%%

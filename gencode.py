@@ -87,7 +87,8 @@ class CodeGenerator:
             'SM_HAS_SECONDS': HSM_TICK_1S_EVENT in self.__sm_signals,
             'SM_HAS_MINUTES': HSM_TICK_1M_EVENT in self.__sm_signals,
             'SM_HSM_OBJECTS': ', '.join(map(lambda m: "'{}'".format(m), self.__hsm_modules)),
-            'SM_HSM_IMPORTS': self.__write_imports,
+            'SM_HSM_IMPORTS': self.__write_hsm_imports,
+            'SM_HSM_INITS': self.__write_hsm_inits,
             'SM_NAME': self.__sm_name,
             'SM_NAME_LO': self.__sm_name_lo,
             'SM_NAME_CAP': self.__sm_name_cap,
@@ -313,11 +314,16 @@ class CodeGenerator:
             return trigger[0:idx1], trigger[idx1+1:idx2]
         return trigger, None
 
-    def __write_imports(self, f):
+    def __write_hsm_imports(self, f):
         for module in self.__hsm_modules:
-            self.__w(f, 'from hsm_controller.{lm}_caller import {m}\n'.format(lm=module.lower(),
-                                                                              m=module))
+            self.__w(f, 'import hsm_controller.{lm}_caller\n'.format(lm=module.lower()))
+            self.__w(f, '{} = None'.format(module))
         self.__w(f, '\n')
+
+    def __write_hsm_inits(self, f):
+        for module in self.__hsm_modules:
+            self.__w8(f, 'global {m} = hsm_controller.{lm}_caller.{m}\n'.format(lm=module.lower(),
+                                                                                m=module))
 
     def __write_entry_handler(self, f, state_name, entry, behavior):
         handler_name = 'on_st_{}_{}'.format(state_name, entry)

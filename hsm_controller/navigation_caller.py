@@ -69,7 +69,7 @@ class ROSNavigationCaller:
             pose.pose.orientation.w = 1.0
         
         self.__move_to_point_request.pose = pose
-        self.__client_start.call_async(self.__move_to_point_request)
+        self.__client_move_to_point.call_async(self.__move_to_point_request)
         # TODO: get rid of moving flag - check position
         self.__moving = True
         

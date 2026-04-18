@@ -43,7 +43,7 @@ class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMCo
     def dispatch_event(self, eventstr, arg):
         if eventstr is not None and eventstr in self.__events:
             if arg is None:
-                self.__sm.dispatch(self.__events[eventstr])
+                self.__sm.dispatch(pysm.Event(eventstr))
             else:
                 args = {"value": arg}
                 self.__sm.dispatch(pysm.Event(eventstr, **args))

@@ -83,7 +83,10 @@ class Timer(ROSTimerCaller):
             cls.__object = super().__new__(cls)
         else:
             return cls.__object
-    
+
+    def __init__(self, node, **kwargs):
+        ROSTimerCaller.__init__(self, node, **kwargs)
+ 
     @classmethod
     def start(cls, timeout, repeat = False):
         if cls.__object is not None:

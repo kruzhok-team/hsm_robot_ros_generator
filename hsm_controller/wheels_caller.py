@@ -97,6 +97,9 @@ class Wheels(ROSWheelsCaller):
         else:
             return cls.__object
 
+    def __init__(self, node):
+        ROSWheelsCaller.__init__(self, node)
+
     @classmethod
     def stop(cls):
         if cls.__object is not None:

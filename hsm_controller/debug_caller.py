@@ -55,7 +55,10 @@ class Debug(ROSDebugCaller):
             cls.__object = super().__new__(cls)
         else:
             return cls.__object
-    
+
+    def __init__(self, node):
+        ROSDebugCaller.__init__(self, node)
+
     @classmethod
     def print(cls, s):
         if cls.__object is not None:

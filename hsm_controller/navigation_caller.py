@@ -78,13 +78,16 @@ class ROSNavigationCaller:
 class Navigation(ROSNavigationCaller):
 
     __object = None
-
+    
     def __new__(cls, *args, **kwargs):
         if cls.__object is None:
             cls.__object = super().__new__(cls)
         else:
             return cls.__object
-    
+
+    def __init__(self, node):
+        ROSNavigationCaller.__init__(self, node)
+        
     @classmethod
     def move_to_point(cls, x, y, theta=None):
         if cls.__object is not None:

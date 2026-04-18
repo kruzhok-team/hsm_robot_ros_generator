@@ -64,7 +64,7 @@ class BaseHSMController(rclpy.node.Node):
                 else:
                     self.__api_callers[name] = cls(self)
 
-    def dispatch_event(self, event, arg=None):
+    def dispatch_event(self, event, arg):
         # this functions will be overloaded by the hsm controller implementation
         pass
     
@@ -77,7 +77,7 @@ class BaseHSMController(rclpy.node.Node):
         for module in self.__api_callers.keys():
             events = hsm_controller.constants.HSM_EVENTS[module]
             if msg_code in events:
-                self.dispatch_event(events[msg_code])
+                self.dispatch_event(events[msg_code], None)
                 return
         self.get_logger().warn('Unknown message code: {}'.format(msg_code))
 

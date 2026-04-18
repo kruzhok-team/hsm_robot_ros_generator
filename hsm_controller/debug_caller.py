@@ -26,18 +26,22 @@ import rclpy
 from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
 import hsm_interfaces.srv
 
+Debug = None
+
 class ROSDebugCaller:
 
     PRINT_SERVICE = 'hsm_ros_debug_print'
 
     def __init__(self, node):
-        self.__node = node
-        self.__client_start = self.__node.create_client(hsm_interfaces.srv.DebugPrint,
-                                                        self.PRINT_SERVICE)
-        while not self.__client_start.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
-            self.__node.get_logger().info('ROS Debug caller print service not available')
-        self.__print_request = ros_api.srv.DebugPrint.Request()
-        self.__node.get_logger().info('ROS Debug caller inerface initialized')
+        if Debug is None:
+            self.__node = node
+            self.__client_start = self.__node.create_client(hsm_interfaces.srv.DebugPrint,
+                                                            self.PRINT_SERVICE)
+            while not self.__client_start.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
+                self.__node.get_logger().info('ROS Debug caller print service not available')
+            self.__print_request = ros_api.srv.DebugPrint.Request()
+            self.__node.get_logger().info('ROS Debug caller inerface initialized')
+            Debug = self
 
     def print(self, s):
         self.__print_request.s = s
@@ -45,26 +49,3 @@ class ROSDebugCaller:
 
     def println(self, s):
         self.print(s + '\n')
-
-class Debug(ROSDebugCaller):
-
-    __object = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls.__object is None:
-            cls.__object = super().__new__(cls)
-        else:
-            return cls.__object
-
-    def __init__(self, node):
-        ROSDebugCaller.__init__(self, node)
-
-    @classmethod
-    def print(cls, s):
-        if cls.__object is not None:
-            ROSDebugCaller.print(cls.__object, s)
-
-    @classmethod
-    def println(cls, s):
-        if cls.__object is not None:
-            ROSDebugCaller.println(cls.__object, s)

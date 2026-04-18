@@ -35,9 +35,10 @@ import hsm_controller.navigation_caller
 import hsm_interfaces.msg
 
 HSM_CALLERS = {
-    hsm_controller.constants.HSM_DEBUG: hsm_controller.debug_caller.Debug,
-    hsm_controller.constants.HSM_NAVIGATION: hsm_controller.navigation_caller.Navigation,
-    hsm_controller.constants.HSM_TIMER: hsm_controller.timer_caller.Timer
+    hsm_controller.constants.HSM_DEBUG: hsm_controller.debug_caller.ROSDebugCaller,
+    hsm_controller.constants.HSM_NAVIGATION: hsm_controller.navigation_caller.ROSNavigationCaller,
+    hsm_controller.constants.HSM_TIMER: hsm_controller.timer_caller.ROSTimerCaller,
+    hsm_controller.constants.HSM_WHEELS: hsm_controller.timer_caller.ROSWheelsCaller
 }
 
 class BaseHSMController(rclpy.node.Node):

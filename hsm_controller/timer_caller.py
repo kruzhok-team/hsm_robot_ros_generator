@@ -26,6 +26,8 @@ import rclpy
 from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
 import hsm_interfaces.srv
 
+Timer = None
+
 class ROSTimerCaller:
 
     TICK_SERVICE = 'hsm_ros_timer_init_ticks'
@@ -33,21 +35,23 @@ class ROSTimerCaller:
     STOP_SERVICE = 'hsm_ros_timer_stop'
     
     def __init__(self, node, **kwargs):
-        self.__node = node
-        self.__client_start = self.__node.create_client(hsm_interfaces.srv.TimerStart,
-                                                        self.START_SERVICE)
-        while not self.__client_start.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
-            self.__node.get_logger().info('ROS Timer caller start service not available')
-        self.__start_request = ros_api.srv.TimerStart.Request()
-        self.__client_stop = self.__node.create_client(hsm_interfaces.srv.TimerStop,
-                                                       self.STOP_SERVICE)
-        self.__stop_request = ros_api.srv.TimerStop.Request()
-        while not self.__client_stop.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
-            self.__node.get_logger().info('ROS Timer caller stop service not available')
-        self.__init_ticks('has_ticks' in kwargs and kwargs['has_ticks'],
-                          'has_ticks_1s' in kwargs and kwargs['has_ticks_1s'],
-                          'has_ticks_1m' in kwargs and kwargs['has_ticks_1m'])
-        self.__node.get_logger().info('ROS Timer caller inerface initialized')
+        if Timer is None:
+            self.__node = node
+            self.__client_start = self.__node.create_client(hsm_interfaces.srv.TimerStart,
+                                                            self.START_SERVICE)
+            while not self.__client_start.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
+                self.__node.get_logger().info('ROS Timer caller start service not available')
+            self.__start_request = ros_api.srv.TimerStart.Request()
+            self.__client_stop = self.__node.create_client(hsm_interfaces.srv.TimerStop,
+                                                           self.STOP_SERVICE)
+            self.__stop_request = ros_api.srv.TimerStop.Request()
+            while not self.__client_stop.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
+                self.__node.get_logger().info('ROS Timer caller stop service not available')
+            self.__init_ticks('has_ticks' in kwargs and kwargs['has_ticks'],
+                              'has_ticks_1s' in kwargs and kwargs['has_ticks_1s'],
+                              'has_ticks_1m' in kwargs and kwargs['has_ticks_1m'])
+            self.__node.get_logger().info('ROS Timer caller inerface initialized')
+            Timer = self
 
     def __init_ticks(self, has_ticks, has_ticks_1s, has_ticks_1m):
         client = self.__node.create_client(hsm_interfaces.srv.TimerTick,
@@ -73,26 +77,3 @@ class ROSTimerCaller:
      
     def stop(self):
         self.__client_stop.call_async(self.__stop_request)
-
-class Timer(ROSTimerCaller):
-
-    __object = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls.__object is None:
-            cls.__object = super().__new__(cls)
-        else:
-            return cls.__object
-
-    def __init__(self, node, **kwargs):
-        ROSTimerCaller.__init__(self, node, **kwargs)
- 
-    @classmethod
-    def start(cls, timeout, repeat = False):
-        if cls.__object is not None:
-            ROSTimerCaller.start(cls.__object, timeout, repeat)
-
-    @classmethod
-    def stop(cls):
-        if cls.__object is not None:
-            ROSTimerCaller.stop(cls.__object)

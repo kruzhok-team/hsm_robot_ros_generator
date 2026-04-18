@@ -32,6 +32,7 @@ SERVICE_STARTUP_TIMEOUT = 1.0   # server initialization timeout
 HSM_DEBUG =      'Debug'
 HSM_NAVIGATION = 'Navigation'
 HSM_TIMER =      'Timer'
+HSM_WHEELS =     'Wheels'
 
 # HSM events
 from hsm_interfaces.msg import SimpleMessage

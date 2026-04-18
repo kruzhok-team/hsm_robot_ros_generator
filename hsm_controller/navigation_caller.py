@@ -28,25 +28,29 @@ import math
 from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
 import hsm_interfaces.srv
 
+Navigation = None
+
 class ROSNavigationCaller:
 
     MOVE_TO_POINT_SERVICE = 'hsm_ros_navigation_move_to_point'
     STOP_SERVICE = 'hsm_ros_navigation_stop'
     
     def __init__(self, node):
-        self.__node = node
-        self.__client_move_to_point = self.__node.create_client(hsm_interfaces.srv.NavigationMoveToPoint,
-                                                                self.MOVE_TO_POINT_SERVICE)
-        while not self.__client_move_to_point.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
-            self.__node.get_logger().info('ROS Navigation Caller move_to_point service not available')
-        self.__start_request = ros_api.srv.NavigationMoveToPoint.Request()
-        self.__client_stop = self.__node.create_client(hsm_interfaces.srv.NavigationStop,
-                                                       self.STOP_SERVICE)
-        self.__stop_request = ros_api.srv.NavigationStop.Request()
-        while not self.__client_stop.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
-            self.__node.get_logger().info('ROS Navigation stop service not available')
-        self.__moving = False
-        self.__node.get_logger().info('ROS Navigation caller inerface initialized')
+        if Navigation is None:
+            self.__node = node
+            self.__client_move_to_point = self.__node.create_client(hsm_interfaces.srv.NavigationMoveToPoint,
+                                                                    self.MOVE_TO_POINT_SERVICE)
+            while not self.__client_move_to_point.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
+                self.__node.get_logger().info('ROS Navigation Caller move_to_point service not available')
+            self.__start_request = ros_api.srv.NavigationMoveToPoint.Request()
+            self.__client_stop = self.__node.create_client(hsm_interfaces.srv.NavigationStop,
+                                                           self.STOP_SERVICE)
+            self.__stop_request = ros_api.srv.NavigationStop.Request()
+            while not self.__client_stop.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
+                self.__node.get_logger().info('ROS Navigation stop service not available')
+            self.__moving = False
+            self.__node.get_logger().info('ROS Navigation caller inerface initialized')
+            Navigation = self
 
     def move_to_point(self, x, y, theta=None):
         pose = PoseStamped()
@@ -65,35 +69,14 @@ class ROSNavigationCaller:
         
         self.__move_to_point_request.pose = pose
         self.__client_start.call_async(self.__move_to_point_request)
-
+        # TODO: get rid of moving flag - check position
         self.__moving = True
         
     def stop(self):
         self.__client_stop.call_async(self.__stop_request)
+        # TODO: get rid of moving flag - check position
         self.__moving = False
 
     def is_moving(self):
+        # TODO: get rid of moving flag - check position
         return self.__moving
-
-class Navigation(ROSNavigationCaller):
-
-    __object = None
-    
-    def __new__(cls, *args, **kwargs):
-        if cls.__object is None:
-            cls.__object = super().__new__(cls)
-        else:
-            return cls.__object
-
-    def __init__(self, node):
-        ROSNavigationCaller.__init__(self, node)
-        
-    @classmethod
-    def move_to_point(cls, x, y, theta=None):
-        if cls.__object is not None:
-            ROSNavigationCaller.move_to_point(cls.__object, x, y, theta)
-
-    @classmethod
-    def stop(cls):
-        if cls.__object is not None:
-            ROSNavigationCaller.stop(cls.__object)

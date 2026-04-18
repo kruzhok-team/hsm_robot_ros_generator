@@ -33,6 +33,7 @@ class ROSDebugCaller:
     PRINT_SERVICE = 'hsm_ros_debug_print'
 
     def __init__(self, node):
+        global Debug
         if Debug is None:
             self.__node = node
             self.__client_start = self.__node.create_client(hsm_interfaces.srv.DebugPrint,

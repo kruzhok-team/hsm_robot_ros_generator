@@ -37,6 +37,7 @@ class ROSWheelsCaller:
     TURN_LEFT_SERVICE = 'hsm_ros_wheels_turn_left'
     
     def __init__(self, node):
+        global Wheels
         if Wheels is None:
             self.__node = node
             self.__client_stop = self.__node.create_client(hsm_interfaces.srv.WheelsStop,

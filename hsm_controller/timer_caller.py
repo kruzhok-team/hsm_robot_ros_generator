@@ -35,6 +35,7 @@ class ROSTimerCaller:
     STOP_SERVICE = 'hsm_ros_timer_stop'
     
     def __init__(self, node, **kwargs):
+        global Timer
         if Timer is None:
             self.__node = node
             self.__client_start = self.__node.create_client(hsm_interfaces.srv.TimerStart,

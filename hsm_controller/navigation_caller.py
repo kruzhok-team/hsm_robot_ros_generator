@@ -36,6 +36,7 @@ class ROSNavigationCaller:
     STOP_SERVICE = 'hsm_ros_navigation_stop'
     
     def __init__(self, node):
+        global Navigation
         if Navigation is None:
             self.__node = node
             self.__client_move_to_point = self.__node.create_client(hsm_interfaces.srv.NavigationMoveToPoint,

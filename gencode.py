@@ -321,6 +321,7 @@ class CodeGenerator:
         self.__w(f, '\n')
 
     def __write_hsm_inits(self, f):
+        self.__w(f, '\n')
         for module in self.__hsm_modules:
             self.__w8(f, 'global {m} = hsm_controller.{lm}_caller.{m}\n'.format(lm=module.lower(),
                                                                                 m=module))

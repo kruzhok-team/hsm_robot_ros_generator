@@ -50,6 +50,7 @@ class BaseHSMController(rclpy.node.Node):
                                                        hsm_controller.constants.MESSAGES_TOPIC,
                                                        self.__simple_message_callback,
                                                        hsm_controller.constants.MSG_QUEUE_LEN)
+        self.get_logger().info('Initializing HSM classes: {}'.format(obj_list))
         self.__api_callers = {}
         for name,cls in HSM_CALLERS.items():
             if name in obj_list:

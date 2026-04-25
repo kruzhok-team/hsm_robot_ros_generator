@@ -52,4 +52,5 @@ HSM_EVENTS = {
                      SimpleMessage.MSG_NAVIGATION_MOVE_COMPLETED: 'MOVE_COMPLETED',
                      SimpleMessage.MSG_NAVIGATION_COLLISION_WARNING: 'COLLISION_WARNING',
                      SimpleMessage.MSG_NAVIGATION_COLLISION_DETECTED: 'COLLISION_DETECTED'},
+    HSM_WHEELS:     {},
 }

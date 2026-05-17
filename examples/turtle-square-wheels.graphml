@@ -158,7 +158,7 @@ Wheels.stop()</y:NodeLabel>
 entry/
 # 1 meter per sec
 Wheels.forward(1.0)
-Timer.start(5.0)
+Timer.start(4.0)
 
 exit/
 Wheels.stop()</y:NodeLabel>

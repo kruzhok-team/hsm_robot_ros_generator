@@ -32,6 +32,8 @@ class Navigation(api.hsmobject.HSMObject):
     MOVE_COMPLETED = 'MOVE_COMPLETED'
     COLLISION_WARNING = 'COLLISION_WARNING'
     COLLISION_DETECTED = 'COLLISION_DETECTED'
+    STOP_COMPLETED = 'STOP_COMPLETED'
+    RIGHT_OPEN_SPACE = 'RIGHT_OPEN_SPACE'
 
     def __new__(cls):
         instance = super().__new__(cls)
@@ -39,7 +41,9 @@ class Navigation(api.hsmobject.HSMObject):
                                     PATH_NOT_FOUND,
                                     MOVE_COMPLETED,
                                     COLLISION_WARNING,
-                                    COLLISION_DETECTED)))
+                                    COLLISION_DETECTED,
+                                    STOP_COMPLETED,
+                                    RIGHT_OPEN_SPACE)))
         return instance 
 
     def __init__(self):

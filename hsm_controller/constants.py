@@ -22,6 +22,8 @@
 # -----------------------------------------------------------------------------
 
 MESSAGES_TOPIC = '/hsm_ros_msg' # the ROS2 topic for HSM messages
+ODOMETRY_TOPIC = '/odom'        # the ROS2 odometry topic
+LASER_TOPIC = '/scan'           # the ROS2 laser scan topic
 FRAME_ID = 'hsm_ros_api'        # the ROS2 frame for HSM messages
 MSG_QUEUE_LEN = 10              # the ROS2 messages queue length
 LOOP_TIME = 0.05                # loop timer
@@ -51,6 +53,8 @@ HSM_EVENTS = {
                      SimpleMessage.MSG_NAVIGATION_PATH_NOT_FOUND: 'PATH_NOT_FOUND', 
                      SimpleMessage.MSG_NAVIGATION_MOVE_COMPLETED: 'MOVE_COMPLETED',
                      SimpleMessage.MSG_NAVIGATION_COLLISION_WARNING: 'COLLISION_WARNING',
-                     SimpleMessage.MSG_NAVIGATION_COLLISION_DETECTED: 'COLLISION_DETECTED'},
+                     SimpleMessage.MSG_NAVIGATION_COLLISION_DETECTED: 'COLLISION_DETECTED',
+                     SimpleMessage.MSG_NAVIGATION_STOP_COMPLETED: 'STOP_COMPLETED',
+                     SimpleMessage.MSG_NAVIGATION_RIGHT_OPEN_SPACE: 'RIGHT_OPEN_SPACE'},
     HSM_WHEELS:     {},
 }

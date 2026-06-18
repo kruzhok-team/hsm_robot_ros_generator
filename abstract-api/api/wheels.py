@@ -27,11 +27,10 @@ class Wheels(api.hsmobject.HSMObject):
     """Low-level wheel control API"""
 
     # events constants
-    COLLISION_DETECTED = 'COLLISION_DETECTED'
     
     def __new__(cls):
         instance = super().__new__(cls)
-        instance.SIGNALS.union(set(COLLISION_DETECTED,)) 
+        instance.SIGNALS.union(set()) 
         return instance 
     
     def __init__(self):

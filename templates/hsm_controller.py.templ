@@ -22,6 +22,7 @@ class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMCo
     OBJECT_NAME = '%%SM_NAME_LO%%_hsm_controller'
 
     def __init__(self):
+        self.__events = {}
         hsm_controller.base_hsm_controller.BaseHSMController.__init__(self,
 						                      self.OBJECT_NAME,
                                                 	              (%%SM_HSM_OBJECTS%%),

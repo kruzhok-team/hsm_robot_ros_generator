@@ -52,6 +52,10 @@ class BaseHSMController(rclpy.node.Node):
                                                        hsm_controller.constants.MESSAGES_TOPIC,
                                                        self.__simple_message_callback,
                                                        hsm_controller.constants.MSG_QUEUE_LEN)
+        self.__str_msg_listener = self.create_subscription(hsm_interfaces.msg.StringArgMessage,
+                                                           hsm_controller.constants.STR_MESSAGES_TOPIC,
+                                                           self.__string_message_callback,
+                                                           hsm_controller.constants.MSG_QUEUE_LEN)
         self.get_logger().info('Initializing HSM classes: {}'.format(obj_list))
         self.__api_callers = {}
         for name,cls in HSM_CALLERS.items():
@@ -78,6 +82,16 @@ class BaseHSMController(rclpy.node.Node):
             events = hsm_controller.constants.HSM_EVENTS[module]
             if msg_code in events:
                 self.dispatch_event(events[msg_code], None)
+                return
+        self.get_logger().warn('Unknown message code: {}'.format(msg_code))
+
+    def __string_message_callback(self, msg):
+        msg_code = msg.code
+        msg_arg = msg.arg
+        for module in self.__api_callers.keys():
+            events = hsm_controller.constants.HSM_EVENTS[module]
+            if msg_code in events:
+                self.dispatch_event(events[msg_code], msg_arg)
                 return
         self.get_logger().warn('Unknown message code: {}'.format(msg_code))
 

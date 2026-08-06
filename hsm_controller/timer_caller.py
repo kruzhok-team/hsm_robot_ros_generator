@@ -23,6 +23,7 @@
 
 import rclpy
 
+from hsm_robot.constants import DEFAULT_TIMER
 from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
 import hsm_interfaces.srv
 
@@ -71,10 +72,12 @@ class ROSTimerCaller:
         else:
             self.__node.get_logger().info('ROS Timer caller ticks initialization failed')            
         
-    def start(self, timeout, repeat=False):
+    def start(self, timeout, repeat=False, name=DEFAULT_TIMER):
         self.__start_request.timeout = timeout
         self.__start_request.repeat = repeat
+        self.__start_request.name = name
         self.__client_start.call_async(self.__start_request)
      
-    def stop(self):
+    def stop(self, name=DEFAULT_TIMER):
+        self.__stop_request.name = name
         self.__client_stop.call_async(self.__stop_request)

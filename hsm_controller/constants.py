@@ -45,7 +45,7 @@ HSM_TICK_1M_EVENT = 'TIMER_TICK_1M'
 
 HSM_EVENTS = {
     HSM_DEBUG:      {},
-    HSM_TIMER:      {SimpleMessage.MSG_TIMER_ELAPSED: 'TIMER_ELAPSED',
+    HSM_TIMER:      {StringArgMessage.MSG_TIMER_ELAPSED: 'TIMER_ELAPSED',
                      SimpleMessage.MSG_TIMER_TICK: HSM_TICK_EVENT,
                      SimpleMessage.MSG_TIMER_TICK_1S: HSM_TICK_1S_EVENT,
                      SimpleMessage.MSG_TIMER_TICK_1M: HSM_TICK_1M_EVENT},

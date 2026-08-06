@@ -22,6 +22,7 @@
 # -----------------------------------------------------------------------------
 
 MESSAGES_TOPIC = '/hsm_ros_msg' # the ROS2 topic for HSM messages
+STR_MESSAGES_TOPIC = '/hsm_ros_str_msg' # the ROS2 topic for HSM string messages
 ODOMETRY_TOPIC = '/odom'        # the ROS2 odometry topic
 LASER_TOPIC = '/scan'           # the ROS2 laser scan topic
 FRAME_ID = 'hsm_ros_api'        # the ROS2 frame for HSM messages

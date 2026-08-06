@@ -38,6 +38,7 @@ HSM_WHEELS =     'Wheels'
 
 # HSM events
 from hsm_interfaces.msg import SimpleMessage
+from hsm_interfaces.msg import StringArgMessage
 
 HSM_TICK_EVENT = 'TIMER_TICK'
 HSM_TICK_1S_EVENT = 'TIMER_TICK_1S'

@@ -23,8 +23,10 @@
 
 import rclpy
 from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Odometry
 import math
 
+import hsm_controller.constants
 from hsm_controller.service_utils import wait_for_service
 import hsm_interfaces.srv
 
@@ -48,9 +50,26 @@ class ROSNavigationCaller:
                                                            self.STOP_SERVICE)
             self.__stop_request = hsm_interfaces.srv.NavigationStop.Request()
             wait_for_service(self.__node, self.__client_stop, 'ROS Navigation stop')
-            self.__moving = False
+            # get_point() has to answer immediately inside the HSM actions, so the robot
+            # position is read from the odometry topic and cached here instead of being
+            # requested by a service call, which would block the controller node
+            self.__point = None
+            self.__odom_subscriber = self.__node.create_subscription(
+                Odometry,
+                hsm_controller.constants.ODOMETRY_TOPIC,
+                self.__odom_callback,
+                hsm_controller.constants.MSG_QUEUE_LEN)
             self.__node.get_logger().info('ROS Navigation caller inerface initialized')
             Navigation = self
+
+    def __odom_callback(self, msg):
+        position = msg.pose.pose.position
+        orientation = msg.pose.pose.orientation
+        # the yaw of the plain (z, w) rotation around the vertical axis; computed here to
+        # keep the controller free of the transforms3d dependency
+        theta = math.atan2(2.0 * orientation.w * orientation.z,
+                           1.0 - 2.0 * orientation.z * orientation.z)
+        self.__point = (position.x, position.y, theta)
 
     def move_to_point(self, x, y, theta=None):
         pose = PoseStamped()
@@ -69,14 +88,11 @@ class ROSNavigationCaller:
         
         self.__move_to_point_request.pose = pose
         self.__client_move_to_point.call_async(self.__move_to_point_request)
-        # TODO: get rid of moving flag - check position
-        self.__moving = True
-        
+
     def stop(self):
         self.__client_stop.call_async(self.__stop_request)
-        # TODO: get rid of moving flag - check position
-        self.__moving = False
 
-    def is_moving(self):
-        # TODO: get rid of moving flag - check position
-        return self.__moving
+    def get_point(self):
+        # returns the (x, y, theta) position of the robot, or None while no odometry
+        # message has been received yet
+        return self.__point

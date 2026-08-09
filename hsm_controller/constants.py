@@ -35,8 +35,17 @@ SERVICE_STARTUP_LIMIT = 30.0    # give up waiting for a module service after thi
 # HSM modules names
 HSM_DEBUG =      'Debug'
 HSM_NAVIGATION = 'Navigation'
+HSM_PUMP =       'Pump'
+HSM_STORAGE =    'Storage'
 HSM_TIMER =      'Timer'
 HSM_WHEELS =     'Wheels'
+
+# HSM modules dependencies: using the module implies using the modules it depends on.
+# Navigation drives the robot through the wheels, so a diagram declaring Navigation
+# alone still gets the Wheels caller and the Wheels events (STOP_COMPLETED).
+HSM_MODULE_DEPENDENCIES = {
+    HSM_NAVIGATION: (HSM_WHEELS,),
+}
 
 # HSM events
 from hsm_interfaces.msg import SimpleMessage
@@ -57,9 +66,18 @@ HSM_EVENTS = {
                      SimpleMessage.MSG_NAVIGATION_MOVE_COMPLETED: 'MOVE_COMPLETED',
                      SimpleMessage.MSG_NAVIGATION_COLLISION_WARNING: 'COLLISION_WARNING',
                      SimpleMessage.MSG_NAVIGATION_COLLISION_DETECTED: 'COLLISION_DETECTED',
-                     SimpleMessage.MSG_NAVIGATION_STOP_COMPLETED: 'STOP_COMPLETED',
                      SimpleMessage.MSG_NAVIGATION_RIGHT_OPEN_SPACE: 'RIGHT_OPEN_SPACE'},
-    # STOP_COMPLETED is published by the navigation module, but it reports the state of
-    # the wheels, so a diagram declaring Wheels alone has to be able to receive it too
-    HSM_WHEELS:     {SimpleMessage.MSG_NAVIGATION_STOP_COMPLETED: 'STOP_COMPLETED'},
+    HSM_WHEELS:     {SimpleMessage.MSG_WHEELS_STOP_COMPLETED: 'STOP_COMPLETED'},
+    HSM_PUMP:       {},
+    HSM_STORAGE:    {},
 }
+
+def hsm_modules_with_dependencies(modules):
+    # the declared modules followed by the implied ones, keeping the declaration order
+    # and without duplicates
+    result = list(modules)
+    for module in modules:
+        for dependency in HSM_MODULE_DEPENDENCIES.get(module, ()):
+            if dependency not in result:
+                result.append(dependency)
+    return result

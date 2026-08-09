@@ -29,6 +29,7 @@ import datetime
 import CyberiadaML
 
 from hsm_controller.constants import HSM_EVENTS, HSM_TICK_EVENT, HSM_TICK_1S_EVENT, HSM_TICK_1M_EVENT
+from hsm_controller.constants import hsm_modules_with_dependencies
 
 GLOBAL_PARAM_LABEL = 'global parameters'
 GLOBAL_PARAM_SEPARATOR = ':'
@@ -154,6 +155,15 @@ class CodeGenerator:
                         name = name.lower()
                         if name in GLOBAL_PARAM_ALL:
                             self.__global_parameters[name] = value
+
+            # A module may imply other modules (Navigation implies Wheels). The implied
+            # modules are added to the diagram's module list here, so their callers are
+            # imported and initialized and their events are accepted as known signals.
+            for module in hsm_modules_with_dependencies(self.__hsm_modules):
+                if module not in self.__hsm_modules:
+                    self.__hsm_modules.append(module)
+                    for s in HSM_EVENTS[module].values():
+                        all_signals.add(s)
 
             # Find initial pseudostate
             init_id = None

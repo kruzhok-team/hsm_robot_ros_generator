@@ -28,6 +28,8 @@ import hsm_controller.constants
 import hsm_controller.debug_caller
 import hsm_controller.timer_caller
 import hsm_controller.navigation_caller
+import hsm_controller.pump_caller
+import hsm_controller.storage_caller
 import hsm_controller.wheels_caller
 
 import hsm_interfaces.msg
@@ -35,6 +37,8 @@ import hsm_interfaces.msg
 HSM_CALLERS = {
     hsm_controller.constants.HSM_DEBUG: hsm_controller.debug_caller.ROSDebugCaller,
     hsm_controller.constants.HSM_NAVIGATION: hsm_controller.navigation_caller.ROSNavigationCaller,
+    hsm_controller.constants.HSM_PUMP: hsm_controller.pump_caller.ROSPumpCaller,
+    hsm_controller.constants.HSM_STORAGE: hsm_controller.storage_caller.ROSStorageCaller,
     hsm_controller.constants.HSM_TIMER: hsm_controller.timer_caller.ROSTimerCaller,
     hsm_controller.constants.HSM_WHEELS: hsm_controller.wheels_caller.ROSWheelsCaller
 }
@@ -53,6 +57,10 @@ class BaseHSMController(rclpy.node.Node):
                                                            hsm_controller.constants.STR_MESSAGES_TOPIC,
                                                            self.__string_message_callback,
                                                            hsm_controller.constants.MSG_QUEUE_LEN)
+        # a module may imply other modules (Navigation implies Wheels), so the implied
+        # callers are initialized as well - otherwise their events would be dropped as
+        # unknown message codes
+        obj_list = hsm_controller.constants.hsm_modules_with_dependencies(obj_list)
         self.get_logger().info('Initializing HSM classes: {}'.format(obj_list))
         self.__api_callers = {}
         for name,cls in HSM_CALLERS.items():

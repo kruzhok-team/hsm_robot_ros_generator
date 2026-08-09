@@ -16,14 +16,14 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see https://www.gnu.org/licenses/
 #
 # -----------------------------------------------------------------------------
 
 import rclpy
 
-from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
+from hsm_controller.service_utils import wait_for_service
 import hsm_interfaces.srv
 
 Debug = None
@@ -38,8 +38,7 @@ class ROSDebugCaller:
             self.__node = node
             self.__client_start = self.__node.create_client(hsm_interfaces.srv.DebugPrint,
                                                             self.PRINT_SERVICE)
-            while not self.__client_start.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
-                self.__node.get_logger().info('ROS Debug caller print service not available')
+            wait_for_service(self.__node, self.__client_start, 'ROS Debug caller print')
             self.__print_request = hsm_interfaces.srv.DebugPrint.Request()
             self.__node.get_logger().info('ROS Debug caller inerface initialized')
             Debug = self

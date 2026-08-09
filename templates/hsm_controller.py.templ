@@ -11,6 +11,7 @@
 # -----------------------------------------------------------------------------
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 import pysm
 import math
 
@@ -52,8 +53,13 @@ class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMCo
 def main(args=None):
     rclpy.init(args=args)
     node = %%SM_NAME_CAP%%_HSMController()
-    rclpy.spin(node)
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.try_shutdown()
 
 if __name__ == "__main__":
     main()

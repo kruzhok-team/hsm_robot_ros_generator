@@ -16,7 +16,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see https://www.gnu.org/licenses/
 #
 # -----------------------------------------------------------------------------
@@ -30,6 +30,7 @@ MSG_QUEUE_LEN = 10              # the ROS2 messages queue length
 LOOP_TIME = 0.05                # loop timer
 TICK_LEN = 0.1                  # tick event timer
 SERVICE_STARTUP_TIMEOUT = 1.0   # server initialization timeout
+SERVICE_STARTUP_LIMIT = 30.0    # give up waiting for a module service after this
 
 # HSM modules names
 HSM_DEBUG =      'Debug'
@@ -58,5 +59,7 @@ HSM_EVENTS = {
                      SimpleMessage.MSG_NAVIGATION_COLLISION_DETECTED: 'COLLISION_DETECTED',
                      SimpleMessage.MSG_NAVIGATION_STOP_COMPLETED: 'STOP_COMPLETED',
                      SimpleMessage.MSG_NAVIGATION_RIGHT_OPEN_SPACE: 'RIGHT_OPEN_SPACE'},
-    HSM_WHEELS:     {},
+    # STOP_COMPLETED is published by the navigation module, but it reports the state of
+    # the wheels, so a diagram declaring Wheels alone has to be able to receive it too
+    HSM_WHEELS:     {SimpleMessage.MSG_NAVIGATION_STOP_COMPLETED: 'STOP_COMPLETED'},
 }

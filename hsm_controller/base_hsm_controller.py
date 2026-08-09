@@ -16,14 +16,11 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see https://www.gnu.org/licenses/
 #
 # -----------------------------------------------------------------------------
 
-import pysm
-
-import sys
 import rclpy
 import rclpy.node
 
@@ -74,7 +71,10 @@ class BaseHSMController(rclpy.node.Node):
     
     def terminate(self, *args):
         # close the controller node
-        sys.exit()
+        # this runs inside a ROS callback, so raising SystemExit here would escape
+        # through rclpy.spin() and skip the node cleanup; asking rclpy to shut down
+        # instead lets spin() return normally and main() destroy the node
+        rclpy.try_shutdown()
 
     def __simple_message_callback(self, msg):
         msg_code = msg.code

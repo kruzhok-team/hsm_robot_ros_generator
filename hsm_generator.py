@@ -16,29 +16,40 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see https://www.gnu.org/licenses/
 #
 # -----------------------------------------------------------------------------
 
+import argparse
 import sys
 import traceback
 
 import gencode
 
-def usage():
-    print('usage: {} <diagram.graphml>'.format(sys.argv[0]))
-    sys.exit(1)
+DESCRIPTION = 'Generate a ROS2 HSM controller package from a CyberiadaML diagram.'
+EPILOG = ('Note that the generated package is always named hsm_controller and declares a '
+          'single console script, so only one state machine can be built from a given '
+          'output directory: generating a second diagram into the same directory replaces '
+          'the setup files and drops the entry point of the first one.')
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 2:
-        usage()
-
-    graph = sys.argv[1]
+    parser = argparse.ArgumentParser(description=DESCRIPTION, epilog=EPILOG)
+    parser.add_argument('graphml', metavar='<diagram.graphml>',
+                        help='the CyberiadaML diagram to convert')
+    parser.add_argument('-o', '--output', metavar='DIR', default='.',
+                        help='the directory to write the generated package into '
+                             '(default: the current directory)')
+    parser.add_argument('-f', '--force', action='store_true',
+                        help='overwrite an already generated controller')
+    parser.add_argument('-q', '--quiet', action='store_true',
+                        help='do not report the generated files')
+    args = parser.parse_args()
 
     try:
-        g = gencode.CodeGenerator(graph)
+        g = gencode.CodeGenerator(args.graphml, output_dir=args.output,
+                                  force=args.force, quiet=args.quiet)
         g.generate_code()
     except gencode.ParserError as e:
         sys.stderr.write('Graph parsing error: {}\n'.format(e))

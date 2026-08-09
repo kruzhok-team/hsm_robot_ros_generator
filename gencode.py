@@ -15,7 +15,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see https://www.gnu.org/licenses/
 #
 # -----------------------------------------------------------------------------
@@ -45,7 +45,9 @@ INIT_EVENT = 'INIT'
 
 TEMPLATE_RE = re.compile(r'%%([^%]+)%%')
 
-TEMPLATES_DIR = 'templates'
+# the templates ship with the generator, so they are located relative to this file
+# and not relative to the current directory: the generator can be run from anywhere
+TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 CONTROLLER_SCRIPT = 'hsm_controller.py'
 SCRIPT_TARGET_DIR = 'hsm_controller'
 SETUP_TARGET_DIR = '.'
@@ -68,10 +70,19 @@ class CodeGenerator:
 
     VERSION = '1.0' # generator version
 
-    def __init__(self, graph_file, **kwargs):
+    def __init__(self, graph_file, output_dir=SETUP_TARGET_DIR, force=False, quiet=False, **kwargs):
         self.__global_parameters = {}
         self.__hsm_modules = []
         self.__sm_signals = {}
+        # a transition without a trigger is treated as an error unless explicitly
+        # allowed; has to be set before the graph is parsed
+        self.__allow_empty_trans = kwargs.get('allow_empty_trans', False)
+        # the default output directory reproduces the historical behaviour of writing
+        # the package into the current directory
+        self.__script_target_dir = os.path.join(output_dir, SCRIPT_TARGET_DIR)
+        self.__setup_target_dir = output_dir
+        self.__force = force
+        self.__quiet = quiet
 
         self.__load_graph(graph_file, **kwargs)
 
@@ -355,8 +366,9 @@ class CodeGenerator:
     def __write_guard_handler(cls, f, trigger_name, condition, argument):
         handler_name = "is_{}".format(trigger_name)
         cls.__w(f, '\n')
-        # cls.__w4(f, "def {}(self, state, event):\n".format(handler_name))
-        cls.__w4(f, "def {}(self, *_):\n".format(handler_name))
+        # pysm calls the handlers with (state, event), so both have to be named here:
+        # a trigger carrying an argument reads it from the event below
+        cls.__w4(f, "def {}(self, state, event):\n".format(handler_name))
         if argument:
             cls.__w8(f, '{} = event.cargo["value"]\n'.format(argument))
         cls.__w8(f, 'return ({})\n'.format(condition))
@@ -365,8 +377,8 @@ class CodeGenerator:
     def __write_trigger_action(cls, f, trigger_name, behavior, argument):
         handler_name = "on_{}".format(trigger_name)
         cls.__w(f, '\n')
-        # cls.__w4(f, 'def {}(self, state, event):\n'.format(handler_name))
-        cls.__w4(f, 'def {}(self, *_):\n'.format(handler_name))
+        # see __write_guard_handler: the (state, event) signature is what pysm calls
+        cls.__w4(f, 'def {}(self, state, event):\n'.format(handler_name))
         if argument:
             cls.__w8(f, '{} = event.cargo["value"]\n'.format(argument))
         for line in behavior.split('\n'):
@@ -402,7 +414,7 @@ class CodeGenerator:
             if a.has_trigger():
                 name, argument = self.__parse_trigger(a.get_trigger())
             else:
-                name, argument = TICK_EVENT, None
+                name, argument = HSM_TICK_EVENT, None
             trigger_name = '{}_TO_{}_{}'.format(self.__get_state_name(state),
                                                 target_name,
                                                 name)
@@ -530,7 +542,7 @@ class CodeGenerator:
             if a.has_trigger():
                 name, _ = self.__parse_trigger(a.get_trigger())
             else:
-                name, _ = TICK_EVENT, None
+                name, _ = HSM_TICK_EVENT, None
             trigger_name = '{}_TO_{}_{}'.format(source_name,
                                                 target_name,
                                                 name)
@@ -554,13 +566,26 @@ class CodeGenerator:
             self.__w8(f, '{}.add_transition({})\n'.format(owner, ', '.join(parts)))
 
     def generate_code(self):
-        for tmpl in os.listdir(TEMPLATES_DIR):
+        controller_template = CONTROLLER_SCRIPT + TEMPLATES_EXTENSION
+        # sorted() keeps the reported order stable between runs
+        for tmpl in sorted(os.listdir(TEMPLATES_DIR)):
             tmpl_file = os.path.join(TEMPLATES_DIR, tmpl)
-            if tmpl.find(TEMPLATES_EXTENSION) <= 0 or not os.path.isfile(tmpl_file):
+            if not tmpl.endswith(TEMPLATES_EXTENSION) or not os.path.isfile(tmpl_file):
                 continue
-            if tmpl.find(CONTROLLER_SCRIPT) == 0:
-                target_file = os.path.join(SCRIPT_TARGET_DIR, self.__sm_name_lo + '.py')
+            if tmpl == controller_template:
+                target_dir = self.__script_target_dir
+                target_file = os.path.join(target_dir, self.__sm_name_lo + '.py')
+                # the controller carries the diagram behavior, so an existing one is
+                # never silently replaced
+                if os.path.exists(target_file) and not self.__force:
+                    raise GeneratorError('The file {} already exists; '.format(target_file) +
+                                         'use --force to overwrite it\n')
             else:
-                target_file = os.path.join(SETUP_TARGET_DIR, tmpl.replace(TEMPLATES_EXTENSION, ''))
-            print('Writing {} as {}'.format(tmpl, target_file))
+                target_dir = self.__setup_target_dir
+                target_file = os.path.join(target_dir,
+                                           tmpl[:-len(TEMPLATES_EXTENSION)])
+            if target_dir and not os.path.isdir(target_dir):
+                os.makedirs(target_dir)
+            if not self.__quiet:
+                print('Writing {} as {}'.format(tmpl, target_file))
             self.__apply_template(tmpl_file, target_file)

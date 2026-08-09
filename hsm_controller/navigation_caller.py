@@ -16,7 +16,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see https://www.gnu.org/licenses/
 #
 # -----------------------------------------------------------------------------
@@ -25,7 +25,7 @@ import rclpy
 from geometry_msgs.msg import PoseStamped
 import math
 
-from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
+from hsm_controller.service_utils import wait_for_service
 import hsm_interfaces.srv
 
 Navigation = None
@@ -41,14 +41,13 @@ class ROSNavigationCaller:
             self.__node = node
             self.__client_move_to_point = self.__node.create_client(hsm_interfaces.srv.NavigationMoveToPoint,
                                                                     self.MOVE_TO_POINT_SERVICE)
-            while not self.__client_move_to_point.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
-                self.__node.get_logger().info('ROS Navigation Caller move_to_point service not available')
+            wait_for_service(self.__node, self.__client_move_to_point,
+                             'ROS Navigation Caller move_to_point')
             self.__move_to_point_request = hsm_interfaces.srv.NavigationMoveToPoint.Request()
             self.__client_stop = self.__node.create_client(hsm_interfaces.srv.NavigationStop,
                                                            self.STOP_SERVICE)
             self.__stop_request = hsm_interfaces.srv.NavigationStop.Request()
-            while not self.__client_stop.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
-                self.__node.get_logger().info('ROS Navigation stop service not available')
+            wait_for_service(self.__node, self.__client_stop, 'ROS Navigation stop')
             self.__moving = False
             self.__node.get_logger().info('ROS Navigation caller inerface initialized')
             Navigation = self

@@ -16,7 +16,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program. If not, see https://www.gnu.org/licenses/
 #
 # -----------------------------------------------------------------------------
@@ -24,7 +24,7 @@
 import rclpy
 
 from hsm_robot.constants import DEFAULT_TIMER
-from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT
+from hsm_controller.service_utils import wait_for_service
 import hsm_interfaces.srv
 
 Timer = None
@@ -41,14 +41,12 @@ class ROSTimerCaller:
             self.__node = node
             self.__client_start = self.__node.create_client(hsm_interfaces.srv.TimerStart,
                                                             self.START_SERVICE)
-            while not self.__client_start.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
-                self.__node.get_logger().info('ROS Timer caller start service not available')
+            wait_for_service(self.__node, self.__client_start, 'ROS Timer caller start')
             self.__start_request = hsm_interfaces.srv.TimerStart.Request()
             self.__client_stop = self.__node.create_client(hsm_interfaces.srv.TimerStop,
                                                            self.STOP_SERVICE)
             self.__stop_request = hsm_interfaces.srv.TimerStop.Request()
-            while not self.__client_stop.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
-                self.__node.get_logger().info('ROS Timer caller stop service not available')
+            wait_for_service(self.__node, self.__client_stop, 'ROS Timer caller stop')
             self.__init_ticks('has_ticks' in kwargs and kwargs['has_ticks'],
                               'has_ticks_1s' in kwargs and kwargs['has_ticks_1s'],
                               'has_ticks_1m' in kwargs and kwargs['has_ticks_1m'])
@@ -58,8 +56,7 @@ class ROSTimerCaller:
     def __init_ticks(self, has_ticks, has_ticks_1s, has_ticks_1m):
         client = self.__node.create_client(hsm_interfaces.srv.TimerTicks,
                                            self.TICK_SERVICE)
-        while not client.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
-            self.__node.get_logger().info('ROS Timer tick service not available')
+        wait_for_service(self.__node, client, 'ROS Timer tick')
         request = hsm_interfaces.srv.TimerTicks.Request()
         request.run_ticks = has_ticks
         request.run_ticks_1sec = has_ticks_1s

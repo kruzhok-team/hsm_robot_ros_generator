@@ -13,10 +13,10 @@
 import rclpy
 from rclpy.executors import ExternalShutdownException
 import pysm
-import math
-
+%%SM_MATH_IMPORT%%
 import hsm_controller.base_hsm_controller
 %%SM_HSM_IMPORTS%%
+
 
 class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMController):
 
@@ -24,24 +24,22 @@ class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMCo
 
     def __init__(self):
         self.__events = {}
-        hsm_controller.base_hsm_controller.BaseHSMController.__init__(self,
-						                      self.OBJECT_NAME,
-                                                	              (%%SM_HSM_OBJECTS%%),
-                                                                      %%SM_HAS_TICKS%%,
-                                                                      %%SM_HAS_SECONDS%%,
-                                                                      %%SM_HAS_MINUTES%%)
-        %%SM_HSM_INITS%%
+        hsm_controller.base_hsm_controller.BaseHSMController.__init__(
+            self,
+            self.OBJECT_NAME,
+            (%%SM_HSM_OBJECTS%%),
+            %%SM_HAS_TICKS%%,
+            %%SM_HAS_SECONDS%%,
+            %%SM_HAS_MINUTES%%)
+%%SM_HSM_INITS%%
         self.__sm = pysm.StateMachine("%%SM_NAME%%")
-        %%SM_EVENTS%%
-        %%SM_STATES%%
-        %%SM_TRANSITIONS%%
+%%SM_EVENTS%%
+%%SM_STATES%%
+%%SM_TRANSITIONS%%
         self.__sm.initialize()
         self.__sm.dispatch(InitEvent)
-
-    %%SM_ENTRY_HANDLERS%%
-
-    %%SM_GUARDS%%
-
+%%SM_ENTRY_HANDLERS%%
+%%SM_GUARDS%%
     def dispatch_event(self, eventstr, arg):
         if eventstr is not None and eventstr in self.__events:
             if arg is None:
@@ -49,6 +47,7 @@ class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMCo
             else:
                 args = {"value": arg}
                 self.__sm.dispatch(pysm.Event(eventstr, **args))
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -60,6 +59,7 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.try_shutdown()
+
 
 if __name__ == "__main__":
     main()

@@ -21,6 +21,7 @@
 # -----------------------------------------------------------------------------
 
 import importlib.util
+import io
 import os
 import re
 import shutil
@@ -103,11 +104,15 @@ HSM_TICK_1S_EVENT = _library_constants.HSM_TICK_1S_EVENT
 HSM_TICK_1M_EVENT = _library_constants.HSM_TICK_1M_EVENT
 hsm_modules_with_dependencies = _library_constants.hsm_modules_with_dependencies
 
+# the generated code is checked by the same linters as the framework sources
+MAX_LINE_LENGTH = 120
+
 # the API module calls of the diagram code, e.g. Navigation.move_to_point(1, 2). The string
 # literals are removed before the match, so a module named inside a printed message is not
 # taken for a call
 MODULE_USAGE_RE = re.compile(r'\b({})\s*\.'.format('|'.join(sorted(HSM_EVENTS.keys()))))
 STRING_LITERAL_RE = re.compile(r"'[^']*'|\"[^\"]*\"")
+MATH_USAGE_RE = re.compile(r'\bmath\s*\.')
 
 
 class ConvertorError(Exception):
@@ -136,6 +141,9 @@ class CodeGenerator:
     def __init__(self, graph_file, output_dir=SETUP_TARGET_DIR, force=False, quiet=False, **kwargs):
         self.__global_parameters = {}
         self.__hsm_modules = []
+        # the math module is imported by the generated controller only when the
+        # diagram code uses it
+        self.__uses_math = False
         self.__sm_signals = {}
         # a transition without a trigger is treated as an error unless explicitly
         # allowed; has to be set before the graph is parsed
@@ -161,6 +169,7 @@ class CodeGenerator:
             'SM_HAS_SECONDS': HSM_TICK_1S_EVENT in self.__sm_signals,
             'SM_HAS_MINUTES': HSM_TICK_1M_EVENT in self.__sm_signals,
             'SM_HSM_OBJECTS': ', '.join("'{}'".format(m) for m in self.__hsm_modules),
+            'SM_MATH_IMPORT': 'import math' if self.__uses_math else '',
             'SM_HSM_IMPORTS': self.__write_hsm_imports,
             'SM_HSM_INITS': self.__write_hsm_inits,
             'SM_NAME': self.__sm_name,
@@ -354,7 +363,10 @@ class CodeGenerator:
         for text in (guard, behavior):
             if not text:
                 continue
-            for module in MODULE_USAGE_RE.findall(STRING_LITERAL_RE.sub('', text)):
+            text = STRING_LITERAL_RE.sub('', text)
+            if MATH_USAGE_RE.search(text):
+                self.__uses_math = True
+            for module in MODULE_USAGE_RE.findall(text):
                 if module not in self.__hsm_modules:
                     raise ParserError('The graph {} uses the module {} in {}, '
                                       'but does not declare it!\n'.format(self.__graph_file,
@@ -372,6 +384,28 @@ class CodeGenerator:
     def __w8(cls, f, s):
         f.write(' ' * 8 + s)
 
+    @classmethod
+    def __w12(cls, f, s):
+        f.write(' ' * 12 + s)
+
+    def __write_assignment(self, f, var, call, parts):
+        line = '{} = {}({})'.format(var, call, ', '.join(parts))
+        if len(line) + 8 <= MAX_LINE_LENGTH:
+            self.__w8(f, line + '\n')
+        else:
+            self.__write_call(f, '{} = {}'.format(var, call), parts)
+
+    def __write_call(self, f, call, parts):
+        line = '{}({})'.format(call, ', '.join(parts))
+        if len(line) + 8 <= MAX_LINE_LENGTH:
+            self.__w8(f, line + '\n')
+            return
+        # the qualified state names are long, so the arguments go one per line
+        self.__w8(f, '{}(\n'.format(call))
+        for i, part in enumerate(parts):
+            tail = ',' if i + 1 < len(parts) else ')'
+            self.__w12(f, part + tail + '\n')
+
     def __insert_template(self, f, template, filename):
         if template not in self.__template_handlers:
             raise GeneratorError(
@@ -387,18 +421,28 @@ class CodeGenerator:
             with open(target_file, 'w') as f:
                 for line in templ.readlines():
                     line = line.rstrip()
+                    # a template standing alone on its line writes whole lines of its own,
+                    # so it controls the line breaks: an empty one writes nothing at all
+                    # and one ending with a line break does not get a second one
+                    alone = TEMPLATE_RE.fullmatch(line) is not None
+                    buf = io.StringIO()
                     while len(line) > 0:
                         match = TEMPLATE_RE.search(line)
                         if match:
                             re_start, re_end = match.span()
                             template = match.group(1)
-                            self.__w(f, line[0:re_start])
-                            self.__insert_template(f, template, template_file)
+                            self.__w(buf, line[0:re_start])
+                            self.__insert_template(buf, template, template_file)
                             line = line[re_end:]
                         else:
-                            self.__w(f, line)
+                            self.__w(buf, line)
                             break
-                    self.__w(f, '\n')
+                    text = buf.getvalue()
+                    if alone and len(text) == 0:
+                        continue
+                    if not text.endswith('\n'):
+                        text += '\n'
+                    f.write(text)
 
     def __write_generator_info(self, f):
         self.__w(f, '# The SM class {} based on {} file\n'.format(self.__sm_name_cap, self.__graph_file))
@@ -419,14 +463,28 @@ class CodeGenerator:
     def __write_hsm_imports(self, f):
         for module in self.__hsm_modules:
             self.__w(f, 'import hsm_controller.{lm}_caller\n'.format(lm=module.lower()))
-            self.__w(f, '{} = None\n'.format(module))
-        self.__w(f, '\n')
-
-    def __write_hsm_inits(self, f):
         self.__w(f, '\n')
         for module in self.__hsm_modules:
-            self.__w8(f, 'global {m}; {m} = hsm_controller.{lm}_caller.{m}\n'.format(lm=module.lower(),
-                                                                                     m=module))
+            self.__w(f, '{} = None\n'.format(module))
+
+    def __write_hsm_inits(self, f):
+        for module in self.__hsm_modules:
+            self.__w8(f, 'global {}\n'.format(module))
+            self.__w8(f, '{m} = hsm_controller.{lm}_caller.{m}\n'.format(
+                lm=module.lower(), m=module))
+        self.__w(f, '\n')
+
+    @classmethod
+    def __transition_name(cls, source_name, target_name, event_name):
+        # the qualified names of the two states repeat the path of their common parent,
+        # which makes the handler names of a deep diagram longer than a source line
+        common = ''
+        for part in source_name.split('_'):
+            candidate = common + part + '_'
+            if not target_name.startswith(candidate):
+                break
+            common = candidate
+        return '{}_TO_{}_{}'.format(source_name, target_name[len(common):], event_name)
 
     def __write_entry_handler(self, f, state_name, entry, behavior):
         handler_name = 'on_st_{}_{}'.format(state_name, entry)
@@ -434,7 +492,7 @@ class CodeGenerator:
         self.__w4(f, 'def {}(self, *_):\n'.format(handler_name))
         # self.__w4(f, 'def {}(self, state, event):\n'.format(handler_name))
         for line in behavior.split('\n'):
-            self.__w8(f, line + '\n')
+            self.__w8(f, line.rstrip() + '\n')
 
     def __write_entries_recursively(self, f, state):
         for a in state.get_actions():
@@ -447,7 +505,6 @@ class CodeGenerator:
                 self.__write_entries_recursively(f, ch)
 
     def __write_entries(self, f):
-        self.__w(f, '\n')
         self.__w4(f, '# Entry & Exit Handlers:\n')
         for ch in self.__graph.get_children():
             if ch.get_type() in (CyberiadaML.elementSimpleState, CyberiadaML.elementCompositeState):
@@ -473,7 +530,7 @@ class CodeGenerator:
         if argument:
             cls.__w8(f, '{} = event.cargo["value"]\n'.format(argument))
         for line in behavior.split('\n'):
-            cls.__w8(f, line + '\n')
+            cls.__w8(f, line.rstrip() + '\n')
 
     def __write_guards_recursively(self, f, state):
         handlers = {}
@@ -506,9 +563,8 @@ class CodeGenerator:
                 name, argument = self.__parse_trigger(a.get_trigger())
             else:
                 name, argument = HSM_TICK_EVENT, None
-            trigger_name = '{}_TO_{}_{}'.format(self.__get_state_name(state),
-                                                target_name,
-                                                name)
+            trigger_name = self.__transition_name(self.__get_state_name(state),
+                                                  target_name, name)
             if trigger_name not in handlers:
                 handlers[trigger_name] = 1
             else:
@@ -531,16 +587,18 @@ class CodeGenerator:
         for ch in self.__graph.get_children():
             if ch.get_type() in (CyberiadaML.elementSimpleState, CyberiadaML.elementCompositeState):
                 self.__write_guards_recursively(f, ch)
+        self.__w(f, '\n')
 
     def __write_handlers(self, f, state_name):
         if state_name not in self.__handlers:
             return
-        handlers_str = ('"{}": {}'.format(*i) for i in self.__handlers[state_name].items())
-        self.__w8(f, 'st_{}.handlers = '.format(state_name) +
-                  '{' + ', '.join(handlers_str) + '}\n')
+        items = list(self.__handlers[state_name].items())
+        self.__w8(f, 'st_{}.handlers = '.format(state_name) + '{\n')
+        for i, (event, handler) in enumerate(items):
+            tail = ',' if i + 1 < len(items) else '}'
+            self.__w12(f, '"{}": {}{}\n'.format(event, handler, tail))
 
     def __write_states(self, f):
-        self.__w(f, '\n')
         self.__w8(f, '# Hierarchical States:\n')
         self.__w8(f, 'st_initial = pysm.State("initial")\n')
         self.__w8(f, 'self.__sm.add_state(st_initial, initial=True)\n')
@@ -559,9 +617,12 @@ class CodeGenerator:
             sm_class = "StateMachine"
         else:
             sm_class = "State"
-        self.__w8(f, '{} = pysm.{}("{}")\n'.format(state_var, sm_class, state_name))
-        self.__w8(f, '{}.add_state({}{})\n'.format(parent_var, state_var,
-                                                   ', initial=True' if initial else ''))
+        self.__write_assignment(f, state_var, 'pysm.{}'.format(sm_class),
+                                ['"{}"'.format(state_name)])
+        parts = [state_var]
+        if initial:
+            parts.append('initial=True')
+        self.__write_call(f, '{}.add_state'.format(parent_var), parts)
         self.__write_handlers(f, state_name)
         if state.get_type() == CyberiadaML.elementCompositeState:
             initial_id = self.__initial_states[state.get_id()]
@@ -570,18 +631,20 @@ class CodeGenerator:
                     self.__write_states_recursively(f, ch, state_var, ch.get_id() == initial_id)
 
     def __write_events(self, f):
-        self.__w(f, '\n')
         self.__w8(f, '# Events:\n\n')
         self.__w8(f, 'InitEvent = pysm.Event("{}")\n'.format(INIT_EVENT))
         for s, v in self.__sm_signals.items():
             self.__w8(f, '{} = "{}"\n'.format(v, s))
             self.__w8(f, '{ev}Event = pysm.Event({ev})\n'.format(ev=v))
-        signals_str = ('"{}": {}Event'.format(*i) for i in self.__sm_signals.items())
-        self.__w8(f, 'self.__events = {{"{}": InitEvent, {}}}\n'.format(INIT_EVENT, ', '.join(signals_str)))
+        entries = ['"{}": InitEvent'.format(INIT_EVENT)]
+        entries += ['"{}": {}Event'.format(s, v) for s, v in self.__sm_signals.items()]
+        self.__w8(f, 'self.__events = {\n')
+        for i, entry in enumerate(entries):
+            tail = ',' if i + 1 < len(entries) else '}'
+            self.__w12(f, entry + tail + '\n')
 
     def __write_transitions(self, f):
-        self.__w(f, '\n')
-        self.__w8(f, '# Internal transitions:\n\n')
+        self.__w8(f, '# Internal transitions:\n')
         for state in self.__local_transitions:
             handlers = {}
             for a in state.get_actions():
@@ -606,16 +669,16 @@ class CodeGenerator:
                         owner = 'self.__sm'
                     else:
                         owner = 'st_{}'.format(self.__get_state_name(parent))
-                    self.__w8(f, '{}.add_transition({})\n'.format(owner, ', '.join(parts)))
+                    self.__write_call(f, '{}.add_transition'.format(owner), parts)
 
         self.__w(f, '\n')
-        self.__w8(f, '# External transitions:\n\n')
+        self.__w8(f, '# External transitions:\n')
         parts = ['st_initial',
                  'st_{}'.format(self.__get_state_name(self.__initial)),
                  'events=["{}"]'.format(INIT_EVENT)]
         if self.__initial_behavior:
             parts.append('action=self.on_initial')
-        self.__w8(f, 'self.__sm.add_transition({})\n'.format(', '.join(parts)))
+        self.__write_call(f, 'self.__sm.add_transition', parts)
 
         # external triggers
         handlers = {}
@@ -634,9 +697,7 @@ class CodeGenerator:
                 name, _ = self.__parse_trigger(a.get_trigger())
             else:
                 name, _ = HSM_TICK_EVENT, None
-            trigger_name = '{}_TO_{}_{}'.format(source_name,
-                                                target_name,
-                                                name)
+            trigger_name = self.__transition_name(source_name, target_name, name)
             if trigger_name not in handlers:
                 handlers[trigger_name] = 1
             else:
@@ -654,7 +715,7 @@ class CodeGenerator:
                 owner = 'self.__sm'
             else:
                 owner = 'st_{}'.format(self.__get_state_name(parent))
-            self.__w8(f, '{}.add_transition({})\n'.format(owner, ', '.join(parts)))
+            self.__write_call(f, '{}.add_transition'.format(owner), parts)
 
     def __write_library(self):
         # the generated controller imports the runtime library as hsm_controller.*, so the

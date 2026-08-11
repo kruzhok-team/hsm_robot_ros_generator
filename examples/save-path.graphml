@@ -119,7 +119,8 @@ Storage.add('path', pnt)</y:NodeLabel>
 
 Debug
 Timer
-Navigation</y:NodeLabel>
+Navigation
+Storage</y:NodeLabel>
         </y:UMLNoteNode>
       </data>
     </node>

@@ -20,15 +20,13 @@
 #
 # -----------------------------------------------------------------------------
 
+import importlib.util
 import os
-import traceback
 import re
+import shutil
 import datetime
 
 import CyberiadaML
-
-from hsm_controller.constants import HSM_EVENTS, HSM_TICK_EVENT, HSM_TICK_1S_EVENT, HSM_TICK_1M_EVENT
-from hsm_controller.constants import hsm_modules_with_dependencies
 
 GLOBAL_PARAM_LABEL = 'global parameters'
 GLOBAL_PARAM_SEPARATOR = ':'
@@ -45,15 +43,71 @@ INIT_EVENT = 'INIT'
 
 TEMPLATE_RE = re.compile(r'%%([^%]+)%%')
 
-# the templates ship with the generator, so they are located relative to this file
-# and not relative to the current directory: the generator can be run from anywhere
-TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+
+def shipped_dir(name):
+    # the templates and the runtime library ship with the generator, so they are located
+    # relative to this file and not relative to the current directory: the generator can
+    # be run from anywhere. When the package is installed the sources are not next to the
+    # script any more and the ament share directory is used instead.
+    local = os.path.join(os.path.dirname(os.path.abspath(__file__)), name)
+    if os.path.isdir(local):
+        return local
+    try:
+        from ament_index_python.packages import get_package_share_directory
+        return os.path.join(get_package_share_directory('hsm_generator'), name)
+    except Exception:
+        return local
+
+
+TEMPLATES_DIR = shipped_dir('templates')
 CONTROLLER_SCRIPT = 'hsm_controller.py'
 SCRIPT_TARGET_DIR = 'hsm_controller'
 SETUP_TARGET_DIR = '.'
 TEMPLATES_EXTENSION = '.templ'
 RESOURCES_DIR = 'resource'
 RESOURCES = ['hsm_controller']
+
+# the controller runtime library the generated package is built upon. The generator ships
+# it and copies it into every package it generates, so the package is complete on its own.
+LIBRARY_DIR = shipped_dir(SCRIPT_TARGET_DIR)
+LIBRARY_FILES = ('__init__.py', 'base_hsm_controller.py', 'constants.py', 'service_utils.py',
+                 'debug_caller.py', 'navigation_caller.py', 'pump_caller.py',
+                 'storage_caller.py', 'timer_caller.py', 'wheels_caller.py')
+
+# the CyberiadaML error classes derive from the built-in Exception and not from
+# CyberiadaML.Exception, so catching the latter alone catches nothing
+CYBERIADAML_EXCEPTIONS = tuple(
+    getattr(CyberiadaML, name) for name in (
+        'Exception', 'CybMLException', 'FileException', 'XMLException', 'FormatException',
+        'ActionException', 'AssertException', 'MetainfoException', 'NotFoundException',
+        'NotImplementedException', 'ParametersException')
+    if hasattr(CyberiadaML, name))
+
+
+def load_library_constants():
+    # the runtime library is data the generator copies into the packages it generates and
+    # not a module it imports: installing it here as hsm_controller would shadow the
+    # generated package of the same name in the same workspace. The event names are
+    # therefore read from the library file directly.
+    path = os.path.join(LIBRARY_DIR, 'constants.py')
+    spec = importlib.util.spec_from_file_location('hsm_controller_constants', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_library_constants = load_library_constants()
+HSM_EVENTS = _library_constants.HSM_EVENTS
+HSM_TICK_EVENT = _library_constants.HSM_TICK_EVENT
+HSM_TICK_1S_EVENT = _library_constants.HSM_TICK_1S_EVENT
+HSM_TICK_1M_EVENT = _library_constants.HSM_TICK_1M_EVENT
+hsm_modules_with_dependencies = _library_constants.hsm_modules_with_dependencies
+
+# the API module calls of the diagram code, e.g. Navigation.move_to_point(1, 2). The string
+# literals are removed before the match, so a module named inside a printed message is not
+# taken for a call
+MODULE_USAGE_RE = re.compile(r'\b({})\s*\.'.format('|'.join(sorted(HSM_EVENTS.keys()))))
+STRING_LITERAL_RE = re.compile(r"'[^']*'|\"[^\"]*\"")
 
 
 class ConvertorError(Exception):
@@ -291,12 +345,20 @@ class CodeGenerator:
             for s in self.__sm_signals.keys():
                 self.__sm_signals[s] = s[0].upper() + s[1:].lower()
 
-        except CyberiadaML.Exception as e:
-            raise ParserError('Unexpected CyberiadaML exception: {}\n{}\n'.format(e.__class__,
-                                                                                  traceback.format_exc()))
+        except CYBERIADAML_EXCEPTIONS as e:
+            raise ParserError('CyberiadaML {}: {}\n'.format(e.__class__.__name__, e))
 
     def __check_trigger_and_behavior(self, context, trigger, guard, behavior):
-        pass
+        # the diagram may call only the API modules it declares: an undeclared module is
+        # not imported into the generated controller and fails when the state is entered
+        for text in (guard, behavior):
+            if not text:
+                continue
+            for module in MODULE_USAGE_RE.findall(STRING_LITERAL_RE.sub('', text)):
+                if module not in self.__hsm_modules:
+                    raise ParserError('The graph {} uses the module {} in {}, '
+                                      'but does not declare it!\n'.format(self.__graph_file,
+                                                                          module, context))
 
     @classmethod
     def __w(cls, f, s):
@@ -594,6 +656,20 @@ class CodeGenerator:
                 owner = 'st_{}'.format(self.__get_state_name(parent))
             self.__w8(f, '{}.add_transition({})\n'.format(owner, ', '.join(parts)))
 
+    def __write_library(self):
+        # the generated controller imports the runtime library as hsm_controller.*, so the
+        # library is copied into the generated package and the package builds on its own
+        target_dir = self.__script_target_dir
+        os.makedirs(target_dir, exist_ok=True)
+        for name in LIBRARY_FILES:
+            source_file = os.path.join(LIBRARY_DIR, name)
+            if not os.path.isfile(source_file):
+                raise GeneratorError('The library file {} is missing\n'.format(source_file))
+            target_file = os.path.join(target_dir, name)
+            if not self.__quiet:
+                print('Writing {} as {}'.format(name, target_file))
+            shutil.copyfile(source_file, target_file)
+
     def generate_code(self):
         controller_template = CONTROLLER_SCRIPT + TEMPLATES_EXTENSION
         # sorted() keeps the reported order stable between runs
@@ -613,15 +689,17 @@ class CodeGenerator:
                 target_dir = self.__setup_target_dir
                 target_file = os.path.join(target_dir,
                                            tmpl[:-len(TEMPLATES_EXTENSION)])
-            if target_dir and not os.path.isdir(target_dir):
-                os.makedirs(target_dir)
+            if target_dir:
+                os.makedirs(target_dir, exist_ok=True)
             if not self.__quiet:
                 print('Writing {} as {}'.format(tmpl, target_file))
-                self.__apply_template(tmpl_file, target_file)
+            self.__apply_template(tmpl_file, target_file)
+        self.__write_library()
         target_dir = os.path.join(self.__setup_target_dir, RESOURCES_DIR)
-        os.makedirs(target_dir)
+        os.makedirs(target_dir, exist_ok=True)
         for r in RESOURCES:
             target_file = os.path.join(target_dir, r)
-            print('Writing {} as {}'.format(r, target_file))
+            if not self.__quiet:
+                print('Writing {} as {}'.format(r, target_file))
             f = open(target_file, 'w')
             f.close()

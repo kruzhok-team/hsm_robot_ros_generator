@@ -608,7 +608,10 @@ class CodeGenerator:
             self.__w8(f, 'st_terminate.handlers = {"enter": self.terminate}\n')
         for ch in self.__graph.get_children():
             if ch.get_type() in (CyberiadaML.elementSimpleState, CyberiadaML.elementCompositeState):
-                self.__write_states_recursively(f, ch, 'self.__sm', ch.get_id() == self.__initial.get_id())
+                # the initial state of the state machine itself is st_initial, which the
+                # INIT transition leaves for the state the initial pseudostate points at:
+                # marking that state as initial as well is rejected by pysm
+                self.__write_states_recursively(f, ch, 'self.__sm', False)
 
     def __write_states_recursively(self, f, state, parent_var, initial):
         state_name = self.__get_state_name(state)

@@ -52,7 +52,8 @@ CONTROLLER_SCRIPT = 'hsm_controller.py'
 SCRIPT_TARGET_DIR = 'hsm_controller'
 SETUP_TARGET_DIR = '.'
 TEMPLATES_EXTENSION = '.templ'
-CREATE_DIRS = ['resource/hsm_controller']
+RESOURCES_DIR = 'resource'
+RESOURCES = 'hsm_controller'
 
 class ConvertorError(Exception):
     def __init__(self, msg):
@@ -615,7 +616,9 @@ class CodeGenerator:
                 os.makedirs(target_dir)
             if not self.__quiet:
                 print('Writing {} as {}'.format(tmpl, target_file))
-            self.__apply_template(tmpl_file, target_file)
-        for d in CREATE_DIRS:
-            target_dir = os.path.join(self.__setup_target_dir, d)
-            os.makedirs(target_dir)
+                self.__apply_template(tmpl_file, target_file)
+        target_dir = os.path.join(self.__setup_target_dir, RESOURCES_DIR)
+        os.makedirs(target_dir)
+        for r in RESOURCES:
+            f = open(os.path.join(target_dir, r), 'w')
+            f.close()

@@ -55,6 +55,7 @@ TEMPLATES_EXTENSION = '.templ'
 RESOURCES_DIR = 'resource'
 RESOURCES = ['hsm_controller']
 
+
 class ConvertorError(Exception):
     def __init__(self, msg):
         Exception.__init__(self)

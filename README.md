@@ -8,14 +8,12 @@ The code is distributed under the GNU Lesser General Public License (version 3).
 
     python3 hsm_generator.py <diagram.graphml> -o <output directory>
 
-The output directory is required. The generator used to write into the current directory
-by default, which overwrote its own sources when it was run from this checkout.
+The output directory is required, so that the generator never writes over its own sources.
 
-The repository itself is the `hsm_generator` ROS 2 package. It contains the convertor
-(`gencode.py`, `hsm_generator.py`), the templates of the generated package, and the
-controller runtime library of the `hsm_controller` directory - the code the generated
-package is built upon. The generated package is a separate package named
-`hsm_controller`.
+This repository is the `hsm_generator` ROS 2 package: the convertor (`gencode.py`,
+`hsm_generator.py`), the templates, and the controller runtime library of the
+`hsm_controller` directory the generated package is built upon. The generated package is a
+separate package named `hsm_controller`.
 
 ## Requirements
 

@@ -10,7 +10,7 @@
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
 # version 3 of the License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -33,14 +33,17 @@ EPILOG = ('Note that the generated package is always named hsm_controller and de
           'output directory: generating a second diagram into the same directory replaces '
           'the setup files and drops the entry point of the first one.')
 
-if __name__ == '__main__':
+
+def main():
 
     parser = argparse.ArgumentParser(description=DESCRIPTION, epilog=EPILOG)
     parser.add_argument('graphml', metavar='<diagram.graphml>',
                         help='the CyberiadaML diagram to convert')
-    parser.add_argument('-o', '--output', metavar='DIR', default='.',
-                        help='the directory to write the generated package into '
-                             '(default: the current directory)')
+    # the output directory is required: the generator used to write into the current
+    # directory by default, which overwrote its own sources when it was run from the
+    # generator checkout
+    parser.add_argument('-o', '--output', metavar='DIR', required=True,
+                        help='the directory to write the generated package into')
     parser.add_argument('-f', '--force', action='store_true',
                         help='overwrite an already generated controller')
     parser.add_argument('-q', '--quiet', action='store_true',
@@ -66,3 +69,7 @@ if __name__ == '__main__':
         sys.exit(4)
 
     sys.exit(0)
+
+
+if __name__ == '__main__':
+    main()

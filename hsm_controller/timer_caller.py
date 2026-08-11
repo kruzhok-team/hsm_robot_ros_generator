@@ -10,7 +10,7 @@
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
 # version 3 of the License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -29,12 +29,13 @@ import hsm_interfaces.srv
 
 Timer = None
 
+
 class ROSTimerCaller:
 
     TICK_SERVICE = 'hsm_ros_timer_init_ticks'
     START_SERVICE = 'hsm_ros_timer_start'
     STOP_SERVICE = 'hsm_ros_timer_stop'
-    
+
     def __init__(self, node, **kwargs):
         global Timer
         if Timer is None:
@@ -67,14 +68,14 @@ class ROSTimerCaller:
         if result.ok:
             self.__node.get_logger().info('ROS Timer caller ticks initialized')
         else:
-            self.__node.get_logger().info('ROS Timer caller ticks initialization failed')            
-        
+            self.__node.get_logger().info('ROS Timer caller ticks initialization failed')
+
     def start(self, timeout, repeat=False, name=DEFAULT_TIMER):
         self.__start_request.timeout = timeout
         self.__start_request.repeat = repeat
         self.__start_request.name = name
         self.__client_start.call_async(self.__start_request)
-     
+
     def stop(self, name=DEFAULT_TIMER):
         self.__stop_request.name = name
         self.__client_stop.call_async(self.__stop_request)

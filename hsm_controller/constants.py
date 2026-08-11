@@ -10,7 +10,7 @@
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
 # version 3 of the License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -21,24 +21,37 @@
 #
 # -----------------------------------------------------------------------------
 
-MESSAGES_TOPIC = '/hsm_ros_msg' # the ROS2 topic for HSM messages
-STR_MESSAGES_TOPIC = '/hsm_ros_str_msg' # the ROS2 topic for HSM string messages
-ODOMETRY_TOPIC = '/odom'        # the ROS2 odometry topic
-LASER_TOPIC = '/scan'           # the ROS2 laser scan topic
-FRAME_ID = 'hsm_ros_api'        # the ROS2 frame for HSM messages
-MSG_QUEUE_LEN = 10              # the ROS2 messages queue length
-LOOP_TIME = 0.05                # loop timer
-TICK_LEN = 0.1                  # tick event timer
-SERVICE_STARTUP_TIMEOUT = 1.0   # server initialization timeout
-SERVICE_STARTUP_LIMIT = 30.0    # give up waiting for a module service after this
+from hsm_interfaces.msg import SimpleMessage
+from hsm_interfaces.msg import StringArgMessage
+
+# the ROS2 topic for HSM messages
+MESSAGES_TOPIC = '/hsm_ros_msg'
+# the ROS2 topic for HSM string messages
+STR_MESSAGES_TOPIC = '/hsm_ros_str_msg'
+# the ROS2 odometry topic
+ODOMETRY_TOPIC = '/odom'
+# the ROS2 laser scan topic
+LASER_TOPIC = '/scan'
+# the ROS2 frame for HSM messages
+FRAME_ID = 'hsm_ros_api'
+# the ROS2 messages queue length
+MSG_QUEUE_LEN = 10
+# loop timer
+LOOP_TIME = 0.05
+# tick event timer
+TICK_LEN = 0.1
+# server initialization timeout
+SERVICE_STARTUP_TIMEOUT = 1.0
+# give up waiting for a module service after this
+SERVICE_STARTUP_LIMIT = 30.0
 
 # HSM modules names
-HSM_DEBUG =      'Debug'
+HSM_DEBUG = 'Debug'
 HSM_NAVIGATION = 'Navigation'
-HSM_PUMP =       'Pump'
-HSM_STORAGE =    'Storage'
-HSM_TIMER =      'Timer'
-HSM_WHEELS =     'Wheels'
+HSM_PUMP = 'Pump'
+HSM_STORAGE = 'Storage'
+HSM_TIMER = 'Timer'
+HSM_WHEELS = 'Wheels'
 
 # HSM modules dependencies: using the module implies using the modules it depends on.
 # Navigation drives the robot through the wheels, so a diagram declaring Navigation
@@ -48,8 +61,6 @@ HSM_MODULE_DEPENDENCIES = {
 }
 
 # HSM events
-from hsm_interfaces.msg import SimpleMessage
-from hsm_interfaces.msg import StringArgMessage
 
 HSM_TICK_EVENT = 'TIMER_TICK'
 HSM_TICK_1S_EVENT = 'TIMER_TICK_1S'
@@ -62,7 +73,7 @@ HSM_EVENTS = {
                      SimpleMessage.MSG_TIMER_TICK_1S: HSM_TICK_1S_EVENT,
                      SimpleMessage.MSG_TIMER_TICK_1M: HSM_TICK_1M_EVENT},
     HSM_NAVIGATION: {SimpleMessage.MSG_NAVIGATION_PATH_FOUND: 'PATH_FOUND',
-                     SimpleMessage.MSG_NAVIGATION_PATH_NOT_FOUND: 'PATH_NOT_FOUND', 
+                     SimpleMessage.MSG_NAVIGATION_PATH_NOT_FOUND: 'PATH_NOT_FOUND',
                      SimpleMessage.MSG_NAVIGATION_MOVE_COMPLETED: 'MOVE_COMPLETED',
                      SimpleMessage.MSG_NAVIGATION_COLLISION_WARNING: 'COLLISION_WARNING',
                      SimpleMessage.MSG_NAVIGATION_COLLISION_DETECTED: 'COLLISION_DETECTED',
@@ -71,6 +82,7 @@ HSM_EVENTS = {
     HSM_PUMP:       {},
     HSM_STORAGE:    {},
 }
+
 
 def hsm_modules_with_dependencies(modules):
     # the declared modules followed by the implied ones, keeping the declaration order

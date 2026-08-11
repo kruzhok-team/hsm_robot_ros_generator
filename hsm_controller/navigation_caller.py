@@ -10,7 +10,7 @@
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
 # version 3 of the License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -21,7 +21,6 @@
 #
 # -----------------------------------------------------------------------------
 
-import rclpy
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
 import math
@@ -32,11 +31,12 @@ import hsm_interfaces.srv
 
 Navigation = None
 
+
 class ROSNavigationCaller:
 
     MOVE_TO_POINT_SERVICE = 'hsm_ros_navigation_move_to_point'
     STOP_SERVICE = 'hsm_ros_navigation_stop'
-    
+
     def __init__(self, node):
         global Navigation
         if Navigation is None:
@@ -85,7 +85,7 @@ class ROSNavigationCaller:
             pose.pose.orientation.w = math.cos(float(theta) / 2)
         else:
             pose.pose.orientation.w = 1.0
-        
+
         self.__move_to_point_request.pose = pose
         self.__client_move_to_point.call_async(self.__move_to_point_request)
 

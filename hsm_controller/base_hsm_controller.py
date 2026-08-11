@@ -10,7 +10,7 @@
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
 # version 3 of the License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -43,6 +43,7 @@ HSM_CALLERS = {
     hsm_controller.constants.HSM_WHEELS: hsm_controller.wheels_caller.ROSWheelsCaller
 }
 
+
 class BaseHSMController(rclpy.node.Node):
 
     def __init__(self, object_name, obj_list,
@@ -63,7 +64,7 @@ class BaseHSMController(rclpy.node.Node):
         obj_list = hsm_controller.constants.hsm_modules_with_dependencies(obj_list)
         self.get_logger().info('Initializing HSM classes: {}'.format(obj_list))
         self.__api_callers = {}
-        for name,cls in HSM_CALLERS.items():
+        for name, cls in HSM_CALLERS.items():
             if name in obj_list:
                 if name == hsm_controller.constants.HSM_TIMER:
                     self.__api_callers[name] = cls(self,
@@ -76,7 +77,7 @@ class BaseHSMController(rclpy.node.Node):
     def dispatch_event(self, event, arg):
         # this functions will be overloaded by the hsm controller implementation
         pass
-    
+
     def terminate(self, *args):
         # close the controller node
         # this runs inside a ROS callback, so raising SystemExit here would escape
@@ -102,4 +103,3 @@ class BaseHSMController(rclpy.node.Node):
                 self.dispatch_event(events[msg_code], msg_arg)
                 return
         self.get_logger().warn('Unknown message code: {}'.format(msg_code))
-

@@ -27,6 +27,7 @@ import hsm_interfaces.srv
 
 Storage = None
 
+
 def _point_to_list(point):
     # the diagram code may pass a single number as a point as well as a coordinate
     # sequence, while the service always carries an array of numbers
@@ -34,6 +35,7 @@ def _point_to_list(point):
         return [float(value) for value in point]
     except TypeError:
         return [float(point)]
+
 
 class ROSStorageCaller:
 
@@ -113,7 +115,7 @@ class ROSStorageCaller:
             len(points), name))
         return True
 
-    def next(self, name):
+    def next(self, name):  # noqa: A003 - the API method name used in the diagrams
         # returns the point as the list of numbers, or None when the storage is exhausted
         if not self.has_data(name):
             return None

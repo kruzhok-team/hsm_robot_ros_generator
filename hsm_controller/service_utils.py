@@ -22,12 +22,15 @@
 
 from hsm_controller.constants import SERVICE_STARTUP_TIMEOUT, SERVICE_STARTUP_LIMIT
 
+
 class ServiceUnavailableError(Exception):
     def __init__(self, msg):
         Exception.__init__(self)
         self.msg = msg
+
     def __str__(self):
         return self.msg
+
 
 def wait_for_service(node, client, description):
     # Wait for an HSM module service to appear, but give up after

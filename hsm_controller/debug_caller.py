@@ -10,7 +10,7 @@
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
 # version 3 of the License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -21,12 +21,12 @@
 #
 # -----------------------------------------------------------------------------
 
-import rclpy
 
 from hsm_controller.service_utils import wait_for_service
 import hsm_interfaces.srv
 
 Debug = None
+
 
 class ROSDebugCaller:
 
@@ -43,7 +43,7 @@ class ROSDebugCaller:
             self.__node.get_logger().info('ROS Debug caller inerface initialized')
             Debug = self
 
-    def print(self, s):
+    def print(self, s):  # noqa: A003 - the API method name used in the diagrams
         self.__print_request.s = s
         self.__client_start.call_async(self.__print_request)
 

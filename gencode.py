@@ -9,7 +9,7 @@
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
 # version 3 of the License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -20,7 +20,6 @@
 #
 # -----------------------------------------------------------------------------
 
-import sys
 import os
 import traceback
 import re
@@ -54,22 +53,29 @@ SCRIPT_TARGET_DIR = 'hsm_controller'
 SETUP_TARGET_DIR = '.'
 TEMPLATES_EXTENSION = '.templ'
 
+
 class ConvertorError(Exception):
     def __init__(self, msg):
         Exception.__init__(self)
         self.msg = msg
+
     def __str__(self):
         return self.msg
+
+
 class ParserError(ConvertorError):
     def __init__(self, msg):
         ConvertorError.__init__(self, msg)
+
+
 class GeneratorError(ConvertorError):
     def __init__(self, msg):
         ConvertorError.__init__(self, msg)
 
+
 class CodeGenerator:
 
-    VERSION = '1.0' # generator version
+    VERSION = '1.0'  # generator version
 
     def __init__(self, graph_file, output_dir=SETUP_TARGET_DIR, force=False, quiet=False, **kwargs):
         self.__global_parameters = {}
@@ -88,17 +94,17 @@ class CodeGenerator:
         self.__load_graph(graph_file, **kwargs)
 
         self.__template_handlers = {
-            'AUTHOR_NAME': self.__global_parameters[GLOBAL_PARAM_AUTHOR] if GLOBAL_PARAM_AUTHOR in self.__global_parameters else '',
-            'AUTHOR_EMAIL': self.__global_parameters[GLOBAL_PARAM_EMAIL] if GLOBAL_PARAM_EMAIL in self.__global_parameters else '',
+            'AUTHOR_NAME': self.__global_parameters.get(GLOBAL_PARAM_AUTHOR, ''),
+            'AUTHOR_EMAIL': self.__global_parameters.get(GLOBAL_PARAM_EMAIL, ''),
             'GENERATOR_INFO': self.__write_generator_info,
-            'LICENSE': self.__global_parameters[GLOBAL_PARAM_LICENSE] if GLOBAL_PARAM_LICENSE in self.__global_parameters else '',
+            'LICENSE': self.__global_parameters.get(GLOBAL_PARAM_LICENSE, ''),
             'SM_ENTRY_HANDLERS': self.__write_entries,
             'SM_EVENTS': self.__write_events,
             'SM_GUARDS': self.__write_guards,
             'SM_HAS_TICKS': (HSM_TICK_EVENT in self.__sm_signals) or (EMPTY_EVENT in self.__sm_signals),
             'SM_HAS_SECONDS': HSM_TICK_1S_EVENT in self.__sm_signals,
             'SM_HAS_MINUTES': HSM_TICK_1M_EVENT in self.__sm_signals,
-            'SM_HSM_OBJECTS': ', '.join(map(lambda m: "'{}'".format(m), self.__hsm_modules)),
+            'SM_HSM_OBJECTS': ', '.join("'{}'".format(m) for m in self.__hsm_modules),
             'SM_HSM_IMPORTS': self.__write_hsm_imports,
             'SM_HSM_INITS': self.__write_hsm_inits,
             'SM_NAME': self.__sm_name,
@@ -106,7 +112,7 @@ class CodeGenerator:
             'SM_NAME_CAP': self.__sm_name_cap,
             'SM_STATES': self.__write_states,
             'SM_TRANSITIONS': self.__write_transitions,
-            'VERSION': self.__global_parameters[GLOBAL_PARAM_VERSION] if GLOBAL_PARAM_VERSION in self.__global_parameters else '',
+            'VERSION': self.__global_parameters.get(GLOBAL_PARAM_VERSION, ''),
             'YEAR': datetime.date.today().year
         }
 
@@ -125,9 +131,9 @@ class CodeGenerator:
             self.__sm_name_lo = self.__sm_name.lower()
             self.__sm_name_cap = self.__sm_name[0].upper() + self.__sm_name[1:].lower()
 
-            all_signals = set([''])
-            
-            # Read global parameters from the standard comments 
+            all_signals = {''}
+
+            # Read global parameters from the standard comments
             for comment in self.__graph.find_elements_by_type(CyberiadaML.elementComment):
                 text = comment.get_body()
                 if text.lower().find(ROS2_HSM_MODULES_LABEL) == 0:
@@ -151,7 +157,7 @@ class CodeGenerator:
                         line = line.strip()
                         if len(line) == 0:
                             continue
-                        name, value = map(lambda s: s.strip(), line.split(GLOBAL_PARAM_SEPARATOR))
+                        name, value = (s.strip() for s in line.split(GLOBAL_PARAM_SEPARATOR))
                         name = name.lower()
                         if name in GLOBAL_PARAM_ALL:
                             self.__global_parameters[name] = value
@@ -179,7 +185,7 @@ class CodeGenerator:
                 raise ParserError('The graph {} has no initial pseudostate!\n'.format(self.__graph_file))
 
             # Read states and transitions
-            uniq_states = set([])
+            uniq_states = set()
             self.__handlers = {}
             self.__transitions = []
             self.__local_transitions = []
@@ -201,10 +207,11 @@ class CodeGenerator:
                         continue
                     a = element.get_action()
                     if len(a.get_trigger()) == 0 and not self.__allow_empty_trans:
-                        raise ParserError('The graph {} has state {} ({}->) with empty external transition!\n'.format(self.__graph_file,
-                                                                                                                      element.get_id(),
-                                                                                                                      source_state.get_name()))
-                    self.__check_trigger_and_behavior(element.get_id(), a.get_trigger(), a.get_guard(), a.get_behavior())
+                        raise ParserError(
+                            'The graph {} has state {} ({}->) with empty external transition!\n'.format(
+                                self.__graph_file, element.get_id(), source_state.get_name()))
+                    self.__check_trigger_and_behavior(element.get_id(), a.get_trigger(),
+                                                      a.get_guard(), a.get_behavior())
                     if a.has_trigger():
                         signal_name = self.__parse_trigger(a.get_trigger())[0]
                         if signal_name not in all_signals:
@@ -216,28 +223,33 @@ class CodeGenerator:
                 else:
                     state_name = element.get_name()
                     if len(state_name) == 0:
-                        raise ParserError('The graph {} has state {} with empty name!\n'.format(self.__graph_file,
-                                                                                                element.get_id()))
+                        raise ParserError(
+                            'The graph {} has state {} with empty name!\n'.format(
+                                self.__graph_file, element.get_id()))
                     if state_name.find(' ') >= 0:
-                        raise ParserError('The graph {} has state {} with spaces in name "{}"!\n'.format(self.__graph_file,
-                                                                                                         element.get_id(),
-                                                                                                         state_name))
+                        raise ParserError(
+                            'The graph {} has state {} with spaces in name "{}"!\n'.format(
+                                self.__graph_file, element.get_id(), state_name))
                     full_name = self.__get_state_name(element)
                     if full_name in uniq_states:
-                        raise ParserError('The graph {} has two states with the same qualfied name {}!\n'.format(self.__graph_file,
-                                                                                                                 full_name))
+                        raise ParserError(
+                            'The graph {} has two states with the same qualfied name {}!\n'.format(
+                                self.__graph_file, full_name))
                     uniq_states.add(full_name)
                     for a in element.get_actions():
                         if a.get_type() == CyberiadaML.actionTransition:
                             if len(a.get_trigger()) == 0:
-                                raise ParserError('The graph {} has state {} with empty trigger in int.trans.!\n'.format(self.__graph_file,
-                                                                                                                         element.get_id()))
-                            self.__check_trigger_and_behavior(full_name, a.get_trigger(), a.get_guard(), a.get_behavior())
+                                raise ParserError(
+                                    'The graph {} has state {} with empty trigger in int.trans.!\n'.format(
+                                        self.__graph_file, element.get_id()))
+                            self.__check_trigger_and_behavior(full_name, a.get_trigger(),
+                                                              a.get_guard(), a.get_behavior())
                             if a.has_trigger():
                                 signal_name = self.__parse_trigger(a.get_trigger())[0]
                                 if signal_name not in all_signals:
-                                    raise ParserError('The graph {} has undefined event {}!\n'.format(self.__graph_file,
-                                                                                              signal_name))
+                                    raise ParserError(
+                                        'The graph {} has undefined event {}!\n'.format(
+                                            self.__graph_file, signal_name))
                                 else:
                                     self.__sm_signals[signal_name] = None
                             self.__local_transitions.append(element)
@@ -280,22 +292,26 @@ class CodeGenerator:
         except CyberiadaML.Exception as e:
             raise ParserError('Unexpected CyberiadaML exception: {}\n{}\n'.format(e.__class__,
                                                                                   traceback.format_exc()))
+
     def __check_trigger_and_behavior(self, context, trigger, guard, behavior):
         pass
 
     @classmethod
     def __w(cls, f, s):
         f.write(s)
+
     @classmethod
     def __w4(cls, f, s):
         f.write(' ' * 4 + s)
+
     @classmethod
     def __w8(cls, f, s):
         f.write(' ' * 8 + s)
 
     def __insert_template(self, f, template, filename):
         if template not in self.__template_handlers:
-            raise GeneratorError('Cannot insert template "{}" in file {}: template not found!\n'.format(template, filename))
+            raise GeneratorError(
+                'Cannot insert template "{}" in file {}: template not found!\n'.format(template, filename))
         handler = self.__template_handlers[template]
         if callable(handler):
             handler(f)
@@ -327,6 +343,7 @@ class CodeGenerator:
     @classmethod
     def __get_state_name(cls, state):
         return state.get_qualified_name().replace('::', '_').replace('-', '_')
+
     @classmethod
     def __parse_trigger(cls, trigger):
         if trigger.find('(') > 0:
@@ -454,7 +471,7 @@ class CodeGenerator:
     def __write_handlers(self, f, state_name):
         if state_name not in self.__handlers:
             return
-        handlers_str = map(lambda i: '"{}": {}'.format(*i), self.__handlers[state_name].items())
+        handlers_str = ('"{}": {}'.format(*i) for i in self.__handlers[state_name].items())
         self.__w8(f, 'st_{}.handlers = '.format(state_name) +
                   '{' + ', '.join(handlers_str) + '}\n')
 
@@ -495,7 +512,7 @@ class CodeGenerator:
         for s, v in self.__sm_signals.items():
             self.__w8(f, '{} = "{}"\n'.format(v, s))
             self.__w8(f, '{ev}Event = pysm.Event({ev})\n'.format(ev=v))
-        signals_str = map(lambda i: '"{}": {}Event'.format(*i), self.__sm_signals.items())
+        signals_str = ('"{}": {}Event'.format(*i) for i in self.__sm_signals.items())
         self.__w8(f, 'self.__events = {{"{}": InitEvent, {}}}\n'.format(INIT_EVENT, ', '.join(signals_str)))
 
     def __write_transitions(self, f):

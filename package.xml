@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>hsm_generator</name>
+  <version>1.0.0</version>
+  <description>The HSM-to-ROS2 code generator: converts a CyberiadaML diagram into a ROS2 controller package</description>
+  <maintainer email="aleksey@fedoseev.net">Alexey Fedoseev</maintainer>
+  <license>LGPL-3.0-or-later</license>
+
+  <!-- the generator reads the message codes from the controller constants -->
+  <depend>hsm_interfaces</depend>
+
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

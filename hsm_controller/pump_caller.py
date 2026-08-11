@@ -20,12 +20,12 @@
 #
 # -----------------------------------------------------------------------------
 
-import rclpy
 
 from hsm_controller.service_utils import wait_for_service
 import hsm_interfaces.srv
 
 Pump = None
+
 
 class ROSPumpCaller:
 

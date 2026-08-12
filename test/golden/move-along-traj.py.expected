@@ -125,10 +125,10 @@ class Move_along_trajectory_HSMController(hsm_controller.base_hsm_controller.Bas
     # Transition Conditions and Actions:
 
     def is_move_along_trajectory_follow_the_path_next_point_TO_complete_MOVE_COMPLETED(self, state, event):
-        return (not Storage.has_data())
+        return (not Storage.has_data('path'))
 
     def is_move_along_trajectory_follow_the_path_next_point_TO_point_MOVE_COMPLETED(self, state, event):
-        return (Storage.has_data())
+        return (Storage.has_data('path'))
 
     def dispatch_event(self, eventstr, arg):
         if eventstr is not None and eventstr in self.__events:

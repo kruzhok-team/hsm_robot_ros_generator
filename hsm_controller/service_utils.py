@@ -33,14 +33,18 @@ class ServiceUnavailableError(Exception):
 
 
 def wait_for_service(node, client, description):
-    # Wait for an HSM module service to appear, but give up after
-    # SERVICE_STARTUP_LIMIT seconds instead of blocking the controller forever:
-    # a module node that is never started used to leave the constructor spinning
-    # with nothing but one log line per second to show for it.
+    # Wait for an HSM module service to appear, but give up after the startup limit
+    # instead of blocking the controller forever: a module node that is never started
+    # used to leave the constructor spinning with nothing but one log line per second
+    # to show for it.
+    # The controller node declares both times as its parameters; the constants are the
+    # fallback for a caller used outside a controller.
+    timeout = getattr(node, 'service_startup_timeout', SERVICE_STARTUP_TIMEOUT)
+    limit = getattr(node, 'service_startup_limit', SERVICE_STARTUP_LIMIT)
     waited = 0.0
-    while not client.wait_for_service(timeout_sec=SERVICE_STARTUP_TIMEOUT):
-        waited += SERVICE_STARTUP_TIMEOUT
-        if waited >= SERVICE_STARTUP_LIMIT:
+    while not client.wait_for_service(timeout_sec=timeout):
+        waited += timeout
+        if waited >= limit:
             raise ServiceUnavailableError('{} service is not available after {} seconds'.format(
-                description, SERVICE_STARTUP_LIMIT))
+                description, limit))
         node.get_logger().info('{} service not available'.format(description))

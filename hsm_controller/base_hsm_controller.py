@@ -23,6 +23,7 @@
 
 import rclpy
 import rclpy.node
+from rcl_interfaces.msg import ParameterDescriptor
 
 import hsm_controller.constants
 import hsm_controller.debug_caller
@@ -46,18 +47,34 @@ HSM_CALLERS = {
 
 class BaseHSMController(rclpy.node.Node):
 
+    def __declare(self, name, default, description):
+        self.declare_parameter(name, default, ParameterDescriptor(description=description))
+        return self.get_parameter(name).value
+
     def __init__(self, object_name, obj_list,
                  has_ticks=False, has_seconds=False, has_minutes=False):
 
         rclpy.node.Node.__init__(self, object_name)
+        # how long the controller waits for the module services of the API before it gives
+        # up. The parameters are read once, while the node is built; the topic names are
+        # not parameters, they are changed by the ROS2 remapping of the node
+        self.service_startup_timeout = self.__declare(
+            'service_startup_timeout', hsm_controller.constants.SERVICE_STARTUP_TIMEOUT,
+            'the period (s) between the checks of a module service')
+        self.service_startup_limit = self.__declare(
+            'service_startup_limit', hsm_controller.constants.SERVICE_STARTUP_LIMIT,
+            'the time (s) after which a missing module service is reported')
+        queue_length = self.__declare(
+            'message_queue_length', hsm_controller.constants.MSG_QUEUE_LEN,
+            'the length of the ROS2 message queues')
         self.__msg_listener = self.create_subscription(hsm_interfaces.msg.SimpleMessage,
                                                        hsm_controller.constants.MESSAGES_TOPIC,
                                                        self.__simple_message_callback,
-                                                       hsm_controller.constants.MSG_QUEUE_LEN)
+                                                       queue_length)
         self.__str_msg_listener = self.create_subscription(hsm_interfaces.msg.StringArgMessage,
                                                            hsm_controller.constants.STR_MESSAGES_TOPIC,
                                                            self.__string_message_callback,
-                                                           hsm_controller.constants.MSG_QUEUE_LEN)
+                                                           queue_length)
         # a module may imply other modules (Navigation implies Wheels), so the implied
         # callers are initialized as well - otherwise their events would be dropped as
         # unknown message codes

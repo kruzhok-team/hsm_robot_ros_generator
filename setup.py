@@ -21,6 +21,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/templates', glob('templates/*.templ')),
         ('share/' + package_name + '/hsm_controller', glob('hsm_controller/*.py')),
+        ('share/' + package_name + '/examples', glob('examples/*.graphml')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

@@ -27,6 +27,8 @@ import pytest
 from conftest import (EXIT_GENERATOR_ERROR, EXIT_OK, EXIT_PARSER_ERROR, diagrams,
                       examples, generate, run_generator)
 
+pytestmark = pytest.mark.unit
+
 INVALID = diagrams('invalid')
 
 # the phrase the report of every rejected diagram has to contain, so that the message

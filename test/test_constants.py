@@ -20,7 +20,11 @@
 #
 # -----------------------------------------------------------------------------
 
+import pytest
+
 import gencode
+
+pytestmark = pytest.mark.unit
 
 constants = gencode._library_constants
 with_dependencies = gencode.hsm_modules_with_dependencies

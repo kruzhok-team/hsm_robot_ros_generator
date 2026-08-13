@@ -25,6 +25,8 @@ import pytest
 import hsm_stubs
 from conftest import controller_module, diagrams, examples, generate
 
+pytestmark = pytest.mark.unit
+
 VALID = diagrams('valid')
 EXAMPLES = examples()
 

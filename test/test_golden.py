@@ -33,6 +33,8 @@ import pytest
 
 from conftest import GOLDEN_DIR, controller_module, diagrams, examples, generate
 
+pytestmark = pytest.mark.unit
+
 VALID = dict(diagrams('valid'))
 VALID.update(examples())
 

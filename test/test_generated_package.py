@@ -30,6 +30,8 @@ import pytest
 import gencode
 from conftest import FLAKE8_CONFIG, GENERATOR_DIR, controller_module, diagrams, examples, generate
 
+pytestmark = pytest.mark.unit
+
 VALID = dict(diagrams('valid'))
 VALID.update(examples())
 

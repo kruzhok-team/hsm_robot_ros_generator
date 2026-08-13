@@ -1,3 +1,10 @@
 __pycache__
 *.pyc
 *~
+
+# colcon writes these when it is run from inside the repository, and the
+# environment snapshot it leaves under build/ holds the whole environment of
+# whoever ran it
+build/
+install/
+log/

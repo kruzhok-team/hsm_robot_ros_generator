@@ -155,12 +155,17 @@ def test_example_cycles_through_the_square(controller):
     assert len(recorder.arguments('Navigation.move_to_point')) == 5
 
 
-def test_example_guard_reads_the_storage(controller):
-    node, recorder = controller(EXAMPLES['move-along-traj'],
-                                {'Storage.next': (1.0, 2.0), 'Storage.has_data': True})
+def test_example_hands_the_whole_route_to_the_module(controller):
+    route = [[1.0, 2.0], [3.0, 4.0]]
+    node, recorder = controller(EXAMPLES['move-along-traj'], {'Storage.points': route})
+    # the diagram loads the storage and asks the module for the whole route at once
+    assert recorder.arguments('Navigation.move_along_traj') == [(route,)]
+    node.dispatch_event('POINT_PASSED', None)
+    # the passed point is reported inside the state, so the route is not restarted
+    assert hsm_stubs.leaf_state(node) == 'move_along_trajectory_follow_the_path_follow_traj'
+    assert len(recorder.arguments('Navigation.move_along_traj')) == 1
     node.dispatch_event('MOVE_COMPLETED', None)
-    # with data left the diagram keeps moving to the next point
-    assert recorder.arguments('Navigation.move_to_point')[-1] == (1.0, 2.0)
+    assert hsm_stubs.leaf_state(node) == 'move_along_trajectory_follow_the_path_complete'
 
 
 def test_deep_example_resolves_transitions_across_composites(controller):

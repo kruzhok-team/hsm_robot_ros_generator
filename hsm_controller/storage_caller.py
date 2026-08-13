@@ -123,6 +123,11 @@ class ROSStorageCaller:
         self.__cursors[name] += 1
         return point
 
+    def points(self, name):
+        # the whole storage as the list of points, e.g. the trajectory for the navigation
+        # module; the cursor of next() is left where it is
+        return [list(point) for point in self.__points.get(name, [])]
+
     def has_data(self, name):
         if name not in self.__points:
             return False

@@ -35,6 +35,7 @@ Navigation = None
 class ROSNavigationCaller:
 
     MOVE_TO_POINT_SERVICE = 'hsm_ros_navigation_move_to_point'
+    MOVE_ALONG_TRAJ_SERVICE = 'hsm_ros_navigation_move_along_traj'
     STOP_SERVICE = 'hsm_ros_navigation_stop'
 
     def __init__(self, node):
@@ -46,6 +47,11 @@ class ROSNavigationCaller:
             wait_for_service(self.__node, self.__client_move_to_point,
                              'ROS Navigation Caller move_to_point')
             self.__move_to_point_request = hsm_interfaces.srv.NavigationMoveToPoint.Request()
+            self.__client_move_along_traj = self.__node.create_client(hsm_interfaces.srv.NavigationMoveAlongTraj,
+                                                                      self.MOVE_ALONG_TRAJ_SERVICE)
+            wait_for_service(self.__node, self.__client_move_along_traj,
+                             'ROS Navigation Caller move_along_traj')
+            self.__move_along_traj_request = hsm_interfaces.srv.NavigationMoveAlongTraj.Request()
             self.__client_stop = self.__node.create_client(hsm_interfaces.srv.NavigationStop,
                                                            self.STOP_SERVICE)
             self.__stop_request = hsm_interfaces.srv.NavigationStop.Request()
@@ -71,7 +77,7 @@ class ROSNavigationCaller:
                            1.0 - 2.0 * orientation.z * orientation.z)
         self.__point = (position.x, position.y, theta)
 
-    def move_to_point(self, x, y, theta=None):
+    def __make_pose(self, x, y, theta=None):
         pose = PoseStamped()
         pose.header.frame_id = "map"
         pose.header.stamp = self.__node.get_clock().now().to_msg()
@@ -86,8 +92,30 @@ class ROSNavigationCaller:
         else:
             pose.pose.orientation.w = 1.0
 
-        self.__move_to_point_request.pose = pose
+        return pose
+
+    def move_to_point(self, x, y, theta=None):
+        self.__move_to_point_request.pose = self.__make_pose(x, y, theta)
         self.__client_move_to_point.call_async(self.__move_to_point_request)
+
+    def move_along_traj(self, traj):
+        # the trajectory is the sequence of the points (x, y) or (x, y, theta); the module
+        # travels them one by one and reports every passed point
+        poses = []
+        for point in traj or []:
+            try:
+                values = [float(value) for value in point]
+            except TypeError:
+                values = None
+            if values is None or not 2 <= len(values) <= 3:
+                # a malformed trajectory is reported and dropped: an exception raised here
+                # would escape through the state machine handler and stop the controller
+                self.__node.get_logger().error(
+                    'ROS Navigation caller move_along_traj(): bad point {}'.format(point))
+                return
+            poses.append(self.__make_pose(*values))
+        self.__move_along_traj_request.poses = poses
+        self.__client_move_along_traj.call_async(self.__move_along_traj_request)
 
     def stop(self):
         self.__client_stop.call_async(self.__stop_request)

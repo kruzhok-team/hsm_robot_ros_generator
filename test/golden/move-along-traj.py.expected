@@ -56,12 +56,15 @@ class Move_along_trajectory_HSMController(hsm_controller.base_hsm_controller.Bas
         # Events:
 
         InitEvent = pysm.Event("INIT")
+        Point_passed = "POINT_PASSED"
+        Point_passedEvent = pysm.Event(Point_passed)
         Timer_tick = "TIMER_TICK"
         Timer_tickEvent = pysm.Event(Timer_tick)
         Move_completed = "MOVE_COMPLETED"
         Move_completedEvent = pysm.Event(Move_completed)
         self.__events = {
             "INIT": InitEvent,
+            "POINT_PASSED": Point_passedEvent,
             "TIMER_TICK": Timer_tickEvent,
             "MOVE_COMPLETED": Move_completedEvent}
         # Hierarchical States:
@@ -76,35 +79,34 @@ class Move_along_trajectory_HSMController(hsm_controller.base_hsm_controller.Bas
         st_move_along_trajectory.add_state(st_move_along_trajectory_follow_the_path, initial=True)
         st_move_along_trajectory_follow_the_path.handlers = {
             "enter": self.on_st_move_along_trajectory_follow_the_path_enter}
-        st_move_along_trajectory_follow_the_path_next_point = pysm.State(
-            "move_along_trajectory_follow_the_path_next_point")
+        st_move_along_trajectory_follow_the_path_follow_traj = pysm.State(
+            "move_along_trajectory_follow_the_path_follow_traj")
         st_move_along_trajectory_follow_the_path.add_state(
-            st_move_along_trajectory_follow_the_path_next_point,
+            st_move_along_trajectory_follow_the_path_follow_traj,
             initial=True)
-        st_move_along_trajectory_follow_the_path_next_point.handlers = {
-            "enter": self.on_st_move_along_trajectory_follow_the_path_next_point_enter}
+        st_move_along_trajectory_follow_the_path_follow_traj.handlers = {
+            "enter": self.on_st_move_along_trajectory_follow_the_path_follow_traj_enter}
         st_move_along_trajectory_follow_the_path_complete = pysm.State("move_along_trajectory_follow_the_path_complete")
         st_move_along_trajectory_follow_the_path.add_state(st_move_along_trajectory_follow_the_path_complete)
         st_move_along_trajectory_follow_the_path_complete.handlers = {
             "enter": self.on_st_move_along_trajectory_follow_the_path_complete_enter}
         # Internal transitions:
+        st_move_along_trajectory_follow_the_path.add_transition(
+            st_move_along_trajectory_follow_the_path_follow_traj,
+            None,
+            events=[Point_passed],
+            action=self.on_move_along_trajectory_follow_the_path_follow_traj_POINT_PASSED)
 
         # External transitions:
-        self.__sm.add_transition(st_initial, st_move_along_trajectory_follow_the_path_next_point, events=["INIT"])
+        self.__sm.add_transition(st_initial, st_move_along_trajectory_follow_the_path_follow_traj, events=["INIT"])
         st_move_along_trajectory_follow_the_path.add_transition(
             st_move_along_trajectory_follow_the_path_complete,
             st_terminate,
             events=[Timer_tick])
         st_move_along_trajectory_follow_the_path.add_transition(
-            st_move_along_trajectory_follow_the_path_next_point,
+            st_move_along_trajectory_follow_the_path_follow_traj,
             st_move_along_trajectory_follow_the_path_complete,
-            events=[Move_completed],
-            condition=self.is_move_along_trajectory_follow_the_path_next_point_TO_complete_MOVE_COMPLETED)
-        st_move_along_trajectory_follow_the_path.add_transition(
-            st_move_along_trajectory_follow_the_path_next_point,
-            st_move_along_trajectory_follow_the_path_next_point,
-            events=[Move_completed],
-            condition=self.is_move_along_trajectory_follow_the_path_next_point_TO_point_MOVE_COMPLETED)
+            events=[Move_completed])
         self.__sm.initialize()
         self.__sm.dispatch(InitEvent)
     # Entry & Exit Handlers:
@@ -113,22 +115,16 @@ class Move_along_trajectory_HSMController(hsm_controller.base_hsm_controller.Bas
         Storage.load('path')
         Debug.println('start')
 
-    def on_st_move_along_trajectory_follow_the_path_next_point_enter(self, *_):
-        pnt = Storage.next('path')
-        Navigation.move_to_point(*pnt)
-        Debug.print('point:')
-        Debug.println(str(pnt))
+    def on_st_move_along_trajectory_follow_the_path_follow_traj_enter(self, *_):
+        Navigation.move_along_traj(Storage.points('path'))
 
     def on_st_move_along_trajectory_follow_the_path_complete_enter(self, *_):
         Debug.println('finish')
 
     # Transition Conditions and Actions:
 
-    def is_move_along_trajectory_follow_the_path_next_point_TO_complete_MOVE_COMPLETED(self, state, event):
-        return (not Storage.has_data('path'))
-
-    def is_move_along_trajectory_follow_the_path_next_point_TO_point_MOVE_COMPLETED(self, state, event):
-        return (Storage.has_data('path'))
+    def on_move_along_trajectory_follow_the_path_follow_traj_POINT_PASSED(self, state, event):
+        Debug.println('point passed')
 
     def dispatch_event(self, eventstr, arg):
         if eventstr is not None and eventstr in self.__events:

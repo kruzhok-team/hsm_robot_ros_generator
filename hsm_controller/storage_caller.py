@@ -76,12 +76,14 @@ class ROSStorageCaller:
             self.__node.get_logger().info('ROS Storage caller inerface initialized')
             Storage = self
 
-    def new(self, name, array):
-        points = [_point_to_list(array)]
+    def new(self, name, array=None):
+        # without an array the storage is created empty, which is how a diagram starts
+        # collecting the points it is about to add
+        points = [] if array is None else [_point_to_list(array)]
         self.__points[name] = points
         self.__cursors[name] = 0
         self.__new_request.name = name
-        self.__new_request.array = points[0]
+        self.__new_request.array = points[0] if points else []
         self.__client_new.call_async(self.__new_request)
 
     def add(self, name, point):

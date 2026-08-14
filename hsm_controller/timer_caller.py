@@ -71,7 +71,10 @@ class ROSTimerCaller:
             self.__node.get_logger().info('ROS Timer caller ticks initialization failed')
 
     def start(self, timeout, repeat=False, name=DEFAULT_TIMER):
-        self.__start_request.timeout = timeout
+        # the diagram writes the timeout the way it reads best, e.g. Timer.start(10), and
+        # the field of the service is a double: an integer put into it as it is aborts the
+        # process from the conversion code, so every number is made one here
+        self.__start_request.timeout = float(timeout)
         self.__start_request.repeat = repeat
         self.__start_request.name = name
         self.__client_start.call_async(self.__start_request)

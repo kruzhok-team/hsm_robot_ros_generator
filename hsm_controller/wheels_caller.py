@@ -77,17 +77,20 @@ class ROSWheelsCaller:
         self.__client_stop.call_async(self.__stop_request)
 
     def forward(self, v):
-        self.__forward_request.v = v
+        # the speed comes from the diagram, where 1 is written as often as 1.0, and the
+        # field of the service is a double: an integer put into it as it is aborts the
+        # process from the conversion code
+        self.__forward_request.v = float(v)
         self.__client_forward.call_async(self.__forward_request)
 
     def back(self, v):
-        self.__back_request.v = v
+        self.__back_request.v = float(v)
         self.__client_back.call_async(self.__back_request)
 
     def turn_right(self, w):
-        self.__client_turn_right_request.w = w
+        self.__client_turn_right_request.w = float(w)
         self.__client_turn_right.call_async(self.__client_turn_right_request)
 
     def turn_left(self, w):
-        self.__client_turn_left_request.w = w
+        self.__client_turn_left_request.w = float(w)
         self.__client_turn_left.call_async(self.__client_turn_left_request)

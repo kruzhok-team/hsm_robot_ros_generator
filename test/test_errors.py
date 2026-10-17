@@ -42,7 +42,7 @@ REPORTED = {
     'unknown_event': 'undefined event',
     'unknown_event_internal': 'undefined event',
     'empty_transition': 'empty external transition',
-    'empty_internal_trigger': 'action text',
+    'empty_internal_trigger': 'empty trigger',
     'empty_state_name': 'empty name',
     'spaced_name': 'spaces in name',
     'duplicate_name': 'same qualified name',

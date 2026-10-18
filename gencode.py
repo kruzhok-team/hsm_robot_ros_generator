@@ -125,8 +125,11 @@ class ConvertorError(Exception):
 
 
 class ParserError(ConvertorError):
-    def __init__(self, msg):
+    # the rule and the element id let the editor point at the problem
+    def __init__(self, msg, rule=None, element=None):
         ConvertorError.__init__(self, msg)
+        self.rule = rule
+        self.element = element
 
 
 class GeneratorError(ConvertorError):
@@ -212,7 +215,8 @@ class CodeGenerator:
                         self.__hsm_modules.append(module)
                         if module not in HSM_EVENTS:
                             raise ParserError('The graph {} contains '.format(self.__graph_file) +
-                                              'unknown module "{}"!\n'.format(module))
+                                              'unknown module "{}"!\n'.format(module),
+                                              'unknown-module', comment.get_id())
                         for s in HSM_EVENTS[module].values():
                             all_signals.add(s)
                 elif text.lower().find(GLOBAL_PARAM_LABEL) == 0:
@@ -244,10 +248,11 @@ class CodeGenerator:
                 if state.get_type() == CyberiadaML.elementInitial:
                     if init_id is not None:
                         raise ParserError('The graph {} has more than one initial'.format(self.__graph_file) +
-                                          'pseudostate on the top level!\n')
+                                          'pseudostate on the top level!\n', 'two-initial', state.get_id())
                     init_id = state.get_id()
             if init_id is None:
-                raise ParserError('The graph {} has no initial pseudostate!\n'.format(self.__graph_file))
+                raise ParserError('The graph {} has no initial pseudostate!\n'.format(self.__graph_file),
+                                  'no-initial')
 
             # Read states and transitions
             uniq_states = set()
@@ -274,14 +279,16 @@ class CodeGenerator:
                     if len(a.get_trigger()) == 0 and not self.__allow_empty_trans:
                         raise ParserError(
                             'The graph {} has state {} ({}->) with empty external transition!\n'.format(
-                                self.__graph_file, element.get_id(), source_state.get_name()))
-                    self.__check_trigger_and_behavior(element.get_id(), a.get_trigger(),
+                                self.__graph_file, element.get_id(), source_state.get_name()),
+                            'empty-transition', element.get_id())
+                    self.__check_trigger_and_behavior(element.get_id(), element.get_id(), a.get_trigger(),
                                                       a.get_guard(), a.get_behavior())
                     if a.has_trigger():
                         signal_name = self.__parse_trigger(a.get_trigger())[0]
                         if signal_name not in all_signals:
                             raise ParserError('The graph {} has undefined event {}!\n'.format(self.__graph_file,
-                                                                                              signal_name))
+                                                                                              signal_name),
+                                              'undefined-event', element.get_id())
                         else:
                             self.__sm_signals[signal_name] = None
                     self.__transitions.append(element)
@@ -290,31 +297,36 @@ class CodeGenerator:
                     if len(state_name) == 0:
                         raise ParserError(
                             'The graph {} has state {} with empty name!\n'.format(
-                                self.__graph_file, element.get_id()))
+                                self.__graph_file, element.get_id()),
+                            'empty-name', element.get_id())
                     if state_name.find(' ') >= 0:
                         raise ParserError(
                             'The graph {} has state {} with spaces in name "{}"!\n'.format(
-                                self.__graph_file, element.get_id(), state_name))
+                                self.__graph_file, element.get_id(), state_name),
+                            'spaced-name', element.get_id())
                     full_name = self.__get_state_name(element)
                     if full_name in uniq_states:
                         raise ParserError(
                             'The graph {} has two states with the same qualified name {}!\n'.format(
-                                self.__graph_file, full_name))
+                                self.__graph_file, full_name),
+                            'duplicate-name', element.get_id())
                     uniq_states.add(full_name)
                     for a in element.get_actions():
                         if a.get_type() == CyberiadaML.actionTransition:
                             if len(a.get_trigger()) == 0:
                                 raise ParserError(
                                     'The graph {} has state {} with empty trigger in int.trans.!\n'.format(
-                                        self.__graph_file, element.get_id()))
-                            self.__check_trigger_and_behavior(full_name, a.get_trigger(),
+                                        self.__graph_file, element.get_id()),
+                                    'empty-trigger', element.get_id())
+                            self.__check_trigger_and_behavior(full_name, element.get_id(), a.get_trigger(),
                                                               a.get_guard(), a.get_behavior())
                             if a.has_trigger():
                                 signal_name = self.__parse_trigger(a.get_trigger())[0]
                                 if signal_name not in all_signals:
                                     raise ParserError(
                                         'The graph {} has undefined event {}!\n'.format(
-                                            self.__graph_file, signal_name))
+                                            self.__graph_file, signal_name),
+                                        'undefined-event', element.get_id())
                                 else:
                                     self.__sm_signals[signal_name] = None
                             self.__local_transitions.append(element)
@@ -329,11 +341,13 @@ class CodeGenerator:
                             if entry not in self.__handlers[full_name]:
                                 handler_name = 'on_st_{}_{}'.format(full_name, entry)
                                 self.__handlers[full_name][entry] = 'self.' + handler_name
-                            self.__check_trigger_and_behavior(full_name, None, None, a.get_behavior())
+                            self.__check_trigger_and_behavior(full_name, element.get_id(), None, None,
+                                                              a.get_behavior())
 
             # Find the initial state
             if self.__initial is None:
-                raise ParserError('The graph {} has no initial state!\n'.format(self.__graph_file))
+                raise ParserError('The graph {} has no initial state!\n'.format(self.__graph_file),
+                                  'no-initial-state')
             self.__initial_states = {}
             # init_parent = self.__initial.get_parent()
             # if init_parent.get_type() != CyberiadaML.elementSM:
@@ -359,16 +373,16 @@ class CodeGenerator:
                                                CyberiadaML.elementCompositeState)]
                 if not states:
                     raise ParserError('The graph {} has the empty composite state {}!\n'.format(
-                        self.__graph_file, element.get_name()))
+                        self.__graph_file, element.get_name()), 'empty-composite', element.get_id())
                 self.__initial_states[element.get_id()] = states[0].get_id()
 
             for s in self.__sm_signals.keys():
                 self.__sm_signals[s] = s[0].upper() + s[1:].lower()
 
         except CYBERIADAML_EXCEPTIONS as e:
-            raise ParserError('CyberiadaML {}: {}\n'.format(e.__class__.__name__, e))
+            raise ParserError('CyberiadaML {}: {}\n'.format(e.__class__.__name__, e), 'cyberiadaml')
 
-    def __check_trigger_and_behavior(self, context, trigger, guard, behavior):
+    def __check_trigger_and_behavior(self, context, element_id, trigger, guard, behavior):
         # the diagram may call only the API modules it declares: an undeclared module is
         # not imported into the generated controller and fails when the state is entered
         for text in (guard, behavior):
@@ -381,7 +395,8 @@ class CodeGenerator:
                 if module not in self.__hsm_modules:
                     raise ParserError('The graph {} uses the module {} in {}, '
                                       'but does not declare it!\n'.format(self.__graph_file,
-                                                                          module, context))
+                                                                          module, context),
+                                      'undeclared-module', element_id)
 
     @classmethod
     def __w(cls, f, s):

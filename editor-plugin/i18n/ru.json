@@ -1,0 +1,15 @@
+{
+  "HSM ROS2": "ROS2 ПРИМС",
+  "Checks the diagram against the HSM-ROS2 robot API, generates the hsm_controller ROS 2 package and builds it with colcon. Needs ROS 2 with the hsm_generator and hsm_interfaces packages.": "Проверяет диаграмму ПРИМС по программному интерфейсу робота HSM-ROS2, генерирует по ней пакет ROS 2 hsm_controller и собирает его с помощью colcon. Для работы нужен ROS 2 с пакетами hsm_generator и hsm_interfaces.",
+  "ROS 2 setup script": "Сценарий настройки ROS 2",
+  "Setup scripts (*.bash)": "Сценарии настройки (*.bash)",
+  "The setup.bash providing hsm_generator and hsm_interfaces; empty: the editor's environment": "Файл setup.bash, в котором есть hsm_generator и hsm_interfaces; пусто — окружение редактора",
+  "Workspace": "Рабочее пространство",
+  "The colcon workspace of the generated package": "Рабочее пространство colcon для генерируемого пакета",
+  "Check the diagram": "Проверить диаграмму",
+  "Check the states, the transitions and the robot API usage": "Проверить состояния, переходы и вызовы программного интерфейса робота",
+  "Generate the package...": "Сгенерировать пакет...",
+  "Write the hsm_controller package into the src directory of the workspace": "Записать пакет hsm_controller в каталог src рабочего пространства",
+  "Build the package": "Собрать пакет",
+  "Build the generated package with colcon; its output streams into the plugin's output tab": "Собрать сгенерированный пакет с помощью colcon; его вывод появляется во вкладке вывода плагина"
+}

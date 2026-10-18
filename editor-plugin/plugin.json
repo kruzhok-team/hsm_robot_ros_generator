@@ -1,0 +1,109 @@
+{
+  "api": 1,
+  "id": "hsm-ros2",
+  "name": "HSM ROS2",
+  "version": "1.0.0",
+  "description": "Checks the diagram against the HSM-ROS2 robot API, generates the hsm_controller ROS 2 package and builds it with colcon. Needs ROS 2 with the hsm_generator and hsm_interfaces packages.",
+  "interpreter": "bash",
+  "parameters": [
+    {
+      "id": "setup",
+      "type": "file",
+      "label": "ROS 2 setup script",
+      "scope": "persistent",
+      "default": "/opt/ros/jazzy/setup.bash",
+      "filter": "Setup scripts (*.bash)",
+      "description": "The setup.bash providing hsm_generator and hsm_interfaces; empty: the editor's environment"
+    },
+    {
+      "id": "ws",
+      "type": "dir",
+      "label": "Workspace",
+      "scope": "document",
+      "default": "${document_dir}/ros2_ws",
+      "create": true,
+      "required": true,
+      "description": "The colcon workspace of the generated package"
+    }
+  ],
+  "actions": [
+    {
+      "id": "check",
+      "label": "Check the diagram",
+      "result": "diagnostics",
+      "exit_ok": [
+        0,
+        1
+      ],
+      "icon": "icons/check.svg",
+      "toolbar": true,
+      "description": "Check the states, the transitions and the robot API usage",
+      "argv": [
+        "${plugin_dir}/ros2_env",
+        "--setup",
+        "${param:setup}",
+        "hsm_generator",
+        "${input}",
+        "--check",
+        "--json",
+        "${diagnostics}"
+      ],
+      "parameters": [
+        "setup"
+      ]
+    },
+    {
+      "id": "generate",
+      "label": "Generate the package...",
+      "result": "files",
+      "outdir": "ws",
+      "icon": "icons/generate.svg",
+      "toolbar": true,
+      "meta": {
+        "platformLanguage": "Python"
+      },
+      "description": "Write the hsm_controller package into the src directory of the workspace",
+      "argv": [
+        "${plugin_dir}/ros2_env",
+        "--setup",
+        "${param:setup}",
+        "hsm_generator",
+        "${input}",
+        "-o",
+        "${outdir}/src/hsm_controller",
+        "-f",
+        "-q"
+      ],
+      "parameters": [
+        "setup",
+        "ws"
+      ]
+    },
+    {
+      "id": "build",
+      "label": "Build the package",
+      "result": "log",
+      "timeout": 0,
+      "icon": "icons/build.svg",
+      "toolbar": true,
+      "description": "Build the generated package with colcon; its output streams into the plugin's output tab",
+      "argv": [
+        "${plugin_dir}/ros2_env",
+        "--setup",
+        "${param:setup}",
+        "--cd",
+        "${param:ws}",
+        "colcon",
+        "build",
+        "--packages-select",
+        "hsm_controller",
+        "--event-handlers",
+        "console_cohesion+"
+      ],
+      "parameters": [
+        "setup",
+        "ws"
+      ]
+    }
+  ]
+}

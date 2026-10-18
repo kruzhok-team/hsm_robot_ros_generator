@@ -10,6 +10,21 @@ The code is distributed under the GNU Lesser General Public License (version 3).
 
 The output directory is required, so that the generator never writes over its own sources.
 
+    python3 hsm_generator.py <diagram.graphml> --check [--json <diagnostics.json>]
+
+checks the diagram only and writes nothing; `--json` writes the findings as the
+diagnostics file of the CyberiadaPro editor.
+
+## Editor plugin
+
+The `editor-plugin` directory is the `hsm-ros2` plugin of CyberiadaPro ("HSM ROS2"): it
+checks the diagram, generates the package into a colcon workspace and builds it. Install
+it into the user plugin folder of the editor from a sourced workspace:
+
+    ros2 run hsm_generator hsm_generator --install-editor-plugin
+
+The plugin is described in `docs/editor_plugin.md`.
+
 This repository is the `hsm_generator` ROS 2 package: the convertor (`gencode.py`,
 `hsm_generator.py`), the templates, and the controller runtime library of the
 `hsm_controller` directory the generated package is built upon. The generated package is a

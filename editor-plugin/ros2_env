@@ -1,0 +1,74 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------
+# The Cyberiada HSM-to-ROS2 library
+#
+# The ROS 2 environment of the CyberiadaPro editor plugin actions
+#
+# Copyright (C) 2025-2026 Alexey Fedoseev <aleksey@fedoseev.net>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 3 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program. If not, see https://www.gnu.org/licenses/
+#
+# -----------------------------------------------------------------------------
+#
+# ros2_env --setup FILE [--cd DIR] hsm_generator|COMMAND ARGS...
+
+EXIT_USAGE=5
+PLUGIN_DIR=$(dirname "$(readlink -f "$0")")
+
+fail() {
+    echo "ros2_env: $1" >&2
+    exit $EXIT_USAGE
+}
+
+SETUP=
+WORKDIR=
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --setup) [ $# -ge 2 ] || fail "--setup needs a file"; SETUP=$2; shift 2 ;;
+        --cd) [ $# -ge 2 ] || fail "--cd needs a directory"; WORKDIR=$2; shift 2 ;;
+        --) shift; break ;;
+        *) break ;;
+    esac
+done
+[ $# -gt 0 ] || fail "no command"
+
+# the setup scripts read unset variables, so they are sourced without set -u
+if [ -n "$SETUP" ]; then
+    [ -f "$SETUP" ] || fail "the ROS 2 setup $SETUP is not found; set it in the plugin settings"
+    . "$SETUP" || fail "sourcing $SETUP failed"
+fi
+if [ -n "$WORKDIR" ]; then
+    mkdir -p "$WORKDIR" && cd "$WORKDIR" || fail "cannot enter $WORKDIR"
+    if [ -f install/setup.bash ]; then
+        . install/setup.bash
+    fi
+fi
+
+if [ "$1" = hsm_generator ]; then
+    shift
+    GENERATOR=${HSM_GENERATOR:-}
+    if [ -z "$GENERATOR" ] && [ -f "$PLUGIN_DIR/../hsm_generator.py" ]; then
+        GENERATOR=$PLUGIN_DIR/../hsm_generator.py
+    fi
+    if [ -z "$GENERATOR" ]; then
+        command -v ros2 > /dev/null || fail "ros2 is not found; check the ROS 2 setup"
+        exec ros2 run hsm_generator hsm_generator "$@"
+    fi
+    case "$GENERATOR" in
+        *.py) exec python3 "$GENERATOR" "$@" ;;
+        *) exec "$GENERATOR" "$@" ;;
+    esac
+fi
+command -v "$1" > /dev/null || fail "$1 is not found; check the ROS 2 setup"
+exec "$@"

@@ -20,6 +20,7 @@
 #
 # -----------------------------------------------------------------------------
 
+import collections
 import importlib.util
 import io
 import os
@@ -38,6 +39,8 @@ GLOBAL_PARAM_LICENSE = 'license'
 GLOBAL_PARAM_ALL = (GLOBAL_PARAM_VERSION, GLOBAL_PARAM_AUTHOR, GLOBAL_PARAM_EMAIL, GLOBAL_PARAM_LICENSE)
 
 ROS2_HSM_MODULES_LABEL = 'ros2 hsm modules'
+# the expectations of a test run of the diagram, one rule per line
+ROS2_HSM_TEST_LABEL = 'ros2 hsm test'
 
 EMPTY_EVENT = ''
 INIT_EVENT = 'INIT'
@@ -114,6 +117,12 @@ MODULE_USAGE_RE = re.compile(r'\b({})\s*\.'.format('|'.join(sorted(HSM_EVENTS.ke
 STRING_LITERAL_RE = re.compile(r"'[^']*'|\"[^\"]*\"")
 MATH_USAGE_RE = re.compile(r'\bmath\s*\.')
 
+# EVENT [xN] [within S] | never EVENT; '#' starts a remark
+TEST_RULE_RE = re.compile(r'^(?:(?P<never>never)\s+(?P<forbidden>\w+)|(?P<event>\w+)'
+                          r'(?:\s+x(?P<count>\d+))?(?:\s+within\s+(?P<within>\d+(?:\.\d+)?))?)$')
+TEST_RULE_REMARK = '#'
+TestRule = collections.namedtuple('TestRule', 'event count within never line')
+
 
 class ConvertorError(Exception):
     def __init__(self, msg):
@@ -137,6 +146,38 @@ class GeneratorError(ConvertorError):
         ConvertorError.__init__(self, msg)
 
 
+def api_event_names():
+    # the events any module of the API reports, whether the diagram declares it or not
+    return {name for events in HSM_EVENTS.values() for name in events.values()}
+
+
+def parse_test_rules(text, element=None):
+    # the rules of a 'ros2 hsm test' comment, without its first line; within is None for
+    # the whole run
+    rules = []
+    known = api_event_names()
+    for line in text.splitlines():
+        line = line.split(TEST_RULE_REMARK, 1)[0].strip()
+        if not line:
+            continue
+        match = TEST_RULE_RE.match(line)
+        if match is None:
+            raise ParserError('The test rule "{}" is not EVENT [xN] [within S] '
+                              'or never EVENT!\n'.format(line), 'test-rule', element)
+        never = match.group('never') is not None
+        event = match.group('forbidden') if never else match.group('event')
+        if event not in known:
+            raise ParserError('The test rule "{}" names the unknown event {}!\n'.format(line, event),
+                              'test-rule', element)
+        count = int(match.group('count') or 1)
+        if count < 1:
+            raise ParserError('The test rule "{}" expects no event; use never!\n'.format(line),
+                              'test-rule', element)
+        within = float(match.group('within')) if match.group('within') else None
+        rules.append(TestRule(event, count, within, never, line))
+    return rules
+
+
 class CodeGenerator:
 
     VERSION = '1.0'  # generator version
@@ -148,6 +189,8 @@ class CodeGenerator:
         # diagram code uses it
         self.__uses_math = False
         self.__sm_signals = {}
+        self.__test_rules = []
+        self.__test_comment = None
         # a transition without a trigger is treated as an error unless explicitly
         # allowed; has to be set before the graph is parsed
         self.__allow_empty_trans = kwargs.get('allow_empty_trans', False)
@@ -219,6 +262,10 @@ class CodeGenerator:
                                               'unknown-module', comment.get_id())
                         for s in HSM_EVENTS[module].values():
                             all_signals.add(s)
+                elif text.lower().find(ROS2_HSM_TEST_LABEL) == 0:
+                    self.__test_comment = comment.get_id()
+                    self.__test_rules = parse_test_rules(text.split('\n', 1)[1] if '\n' in text else '',
+                                                         comment.get_id())
                 elif text.lower().find(GLOBAL_PARAM_LABEL) == 0:
                     for i, line in enumerate(text.splitlines()):
                         if i == 0:
@@ -381,6 +428,10 @@ class CodeGenerator:
 
         except CYBERIADAML_EXCEPTIONS as e:
             raise ParserError('CyberiadaML {}: {}\n'.format(e.__class__.__name__, e), 'cyberiadaml')
+
+    def test_rules(self):
+        # the expectations of a test run and the id of the comment holding them
+        return self.__test_rules, self.__test_comment
 
     def __check_trigger_and_behavior(self, context, element_id, trigger, guard, behavior):
         # the diagram may call only the API modules it declares: an undeclared module is

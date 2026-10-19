@@ -29,6 +29,7 @@ import sys
 import pytest
 
 from conftest import EXIT_OK, EXIT_PARSER_ERROR, GENERATOR_DIR, diagrams, examples
+import gencode
 
 pytestmark = pytest.mark.unit
 
@@ -49,6 +50,7 @@ FINDINGS = {
     'empty_state_name': ('empty-name', 'nA'),
     'spaced_name': ('spaced-name', 'nA'),
     'duplicate_name': ('duplicate-name', 'nB'),
+    'bad_test_rule': ('test-rule', 'nTest'),
 }
 
 
@@ -96,3 +98,41 @@ def test_output_is_required_without_check(tmp_path):
     assert result.returncode != EXIT_OK
     assert '-o' in result.stderr
     assert os.listdir(str(tmp_path)) == []
+
+
+def test_rules_are_parsed():
+    rules = gencode.parse_test_rules('MOVE_COMPLETED\n'
+                                     'MOVE_COMPLETED x4 within 60  # the four corners\n'
+                                     '\n'
+                                     'never COLLISION_DETECTED\n')
+    assert [(r.event, r.count, r.within, r.never) for r in rules] == [
+        ('MOVE_COMPLETED', 1, None, False),
+        ('MOVE_COMPLETED', 4, 60.0, False),
+        ('COLLISION_DETECTED', 1, None, True)]
+
+
+@pytest.mark.parametrize('line', ['MOVE_COMPLETED twice', 'never MOVE_COMPLETED within 5',
+                                  'MOVE_COMPLETED x0', 'NO_SUCH_EVENT', 'never'])
+def test_bad_rule_is_reported(line):
+    with pytest.raises(gencode.ParserError) as error:
+        gencode.parse_test_rules(line, 'nTest')
+    assert error.value.rule == 'test-rule'
+    assert error.value.element == 'nTest'
+
+
+def test_valid_test_comment_is_accepted(tmp_path):
+    # the comment changes nothing in the generated code, so it is added to a copy
+    with open(diagrams('valid')['minimal'], encoding='utf-8') as f:
+        text = f.read()
+    comment = ('    <node id="nTest">\n      <data key="dNote">informal</data>\n'
+               '      <data key="dData">ROS2 HSM Test\n\nTIMER_TICK x3 within 5\n'
+               'never COLLISION_DETECTED</data>\n    </node>\n')
+    position = text.index('    <node id="nInit">')
+    diagram = tmp_path / 'tested.graphml'
+    diagram.write_text(text[:position] + comment + text[position:], encoding='utf-8')
+    result, findings = check(str(diagram), tmp_path)
+    assert result.returncode == EXIT_OK, result.stderr
+    assert findings == []
+    rules, element = gencode.CodeGenerator(str(diagram)).test_rules()
+    assert element == 'nTest'
+    assert [r.line for r in rules] == ['TIMER_TICK x3 within 5', 'never COLLISION_DETECTED']

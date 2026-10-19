@@ -1,7 +1,8 @@
 # The HSM ROS2 Plugin of CyberiadaPro
 
 The `hsm-ros2` plugin makes CyberiadaPro the IDE of HSM-ROS2: it checks a diagram,
-generates the `hsm_controller` ROS 2 package and builds it with colcon. The plugin is
+generates the `hsm_controller` ROS 2 package, builds it with colcon and tests the diagram
+with the fake robot. The plugin is
 written against the editor's plugin interface, level 1 (`docs/PLUGIN-API.md` of
 CyberiadaHSM-Editor): the editor runs a program per action and takes back the result the
 action declares.
@@ -21,9 +22,12 @@ action declares.
 | Plugins > HSM ROS2 |-------->| ros2_env (bash)       |-------->| ${param:setup}      |
 |  check             |         |  --setup FILE         |         | [WS/install/setup]  |
 |  generate          |         |  [--cd WS]            |         +---------------------+
-|  build             |         |  hsm_generator | CMD  |  exec
-+--------------------+         +-----------------------+------+
-   ^  ^  ^                                                    |
+|  build             |         |  hsm_generator |      |  exec
+|  test              |         |  --ros-exec PKG EXE | |
++--------------------+         |  CMD                  |------+
+   ^  ^  ^  ^                  +-----------------------+      |
+   |  |  |  |  diagnostics.json  hsm_robot_test IN --json DIAG ...  <--+ test
+   |  |  |  +---------------------------------------------------------+
    |  |  |  diagnostics.json   hsm_generator.py IN --check --json DIAG  <--+ check
    |  |  +-----------------------------------------------------------------+
    |  |     files of WS        hsm_generator.py IN -o WS/src/hsm_controller -f  <--+ generate
@@ -47,6 +51,7 @@ The descriptor names `bash` as the interpreter, so the adapter needs no executab
 | `check` | `diagnostics` | `hsm_generator ${input} --check --json ${diagnostics}` | 0, 1 | 60 s |
 | `generate` | `files` (`outdir: ws`) | `hsm_generator ${input} -o ${outdir}/src/hsm_controller -f -q` | 0 | 60 s |
 | `build` | `log` | `--cd ${param:ws} colcon build --packages-select hsm_controller` | 0 | none |
+| `test` | `diagnostics` | `--ros-exec hsm_tests hsm_robot_test ${input} --json ${diagnostics} --duration ... --pose ... --scan ... [--real-time]` | 0, 1 | none |
 
 * The actions read `${input}`, the editor's snapshot with the unsaved edits; none of them
   needs the document saved.
@@ -54,7 +59,11 @@ The descriptor names `bash` as the interpreter, so the adapter needs no executab
   edited, so regenerating is the normal cycle. One workspace holds one `hsm_controller`,
   so a second diagram needs a workspace of its own.
 * `generate` fills the missing `platformLanguage` metainformation with `Python`.
-* All three are on the plugin toolbar.
+* `test` runs the diagram against the fake robot of `hsm_robot_ros_tests` (the
+  `hsm_robot_test` runner, `docs/hsm_robot_testing.md` §10 there) and reports every failed
+  expectation of the `ros2 hsm test` comment; its output is the event timeline. It needs
+  the `hsm_tests` package in the `setup` environment. Cancel stops the whole run.
+* All four are on the plugin toolbar.
 
 ## Parameters
 
@@ -62,6 +71,10 @@ The descriptor names `bash` as the interpreter, so the adapter needs no executab
 |---|---|---|---|---|
 | `setup` | `file` | `persistent` | `/opt/ros/jazzy/setup.bash` | all |
 | `ws` | `dir`, `create`, `required` | `document` | `${document_dir}/ros2_ws` | generate, build |
+| `duration` | `int`, min 1 | `document` | 30 | test: the run limit, s |
+| `x`, `y`, `theta` | `double` | `document` | 0 | test: the start pose of the robot |
+| `scan_forward`, `scan_right`, `scan_elsewhere` | `double` | `document` | 10.0 | test: the distances the scan reports, 10 m is free space |
+| `realtime` | `bool` | `document` | false | test: run the timers at their real periods |
 
 `setup` is the ROS 2 setup script that provides `hsm_generator` and `hsm_interfaces`.
 For a source build it is `<ros2_ws>/install/setup.bash`, which chains the underlay;
@@ -72,14 +85,18 @@ nothing and relies on the environment the editor was started in.
 
 ```
 ros2_env --setup FILE [--cd DIR] hsm_generator ARGS...
+ros2_env --setup FILE [--cd DIR] --ros-exec PACKAGE EXECUTABLE ARGS...
 ros2_env --setup FILE [--cd DIR] COMMAND ARGS...
 ```
 
 1. sources `FILE` when it is not empty;
 2. with `--cd`, enters `DIR` (creating it) and sources `DIR/install/setup.bash` if present;
-3. `hsm_generator` is resolved as `$HSM_GENERATOR` (pinned by the installer), then
-   `../hsm_generator.py` of a source tree, then `ros2 run hsm_generator hsm_generator`;
-4. execs the command, so its exit code is the action's exit code.
+3. `--ros-exec` resolves `$(ros2 pkg prefix PACKAGE)/lib/PACKAGE/EXECUTABLE`. Unlike
+   `ros2 run`, which keeps the program as its child, the program replaces the adapter, so
+   the editor's Cancel (SIGTERM) reaches it;
+4. `hsm_generator` is resolved as `$HSM_GENERATOR` (pinned by the installer), then
+   `../hsm_generator.py` of a source tree, then `--ros-exec hsm_generator hsm_generator`;
+5. execs the command, so its exit code is the action's exit code.
 
 | exit | meaning |
 |---|---|
@@ -107,8 +124,37 @@ a check reports one finding at a time.
 | `spaced-name` | the state | a state name with spaces |
 | `duplicate-name` | the state | two states with the same qualified name |
 | `empty-composite` | the state | a composite state without substates |
+| `test-rule` | the comment | a line of `ros2 hsm test` is not a rule or names an unknown event |
 | `cyberiadaml` | | the file is not read as a CyberiadaML diagram |
 | `generator` | | the package is not written (exit 2-4) |
+
+The `test` action writes the same file: `[]` when the run passes, otherwise an entry per
+failed expectation, rule `test-failed`, pointing at the `ros2 hsm test` comment, or rule
+`test-controller` when the controller ends with an error. A diagram the generator rejects
+gets the generator's finding. A node of the framework which fails to start fails the
+action itself.
+
+## The expectations comment
+
+A diagram states what a test run has to see in a comment, the way it declares its modules:
+
+```
+ros2 hsm test
+MOVE_COMPLETED
+MOVE_COMPLETED x4 within 60
+POINT_PASSED within 10
+never COLLISION_DETECTED
+```
+
+| line | holds when |
+|---|---|
+| `EVENT [xN] [within S]` | the robot reports `EVENT` at least `N` times (1) within `S` s (the run duration) of the controller start |
+| `never EVENT` | the robot does not report `EVENT` while the run lasts |
+
+The events are the API event names (`hsm_controller/constants.py`); `#` starts a remark.
+The run stops when every positive rule holds. A diagram without the comment gets a smoke
+run: it passes when the controller is still running, or has ended with 0, after the
+duration. The comment changes nothing in the generated code; `--check` validates it.
 
 ## Install
 
@@ -128,5 +174,6 @@ CyberiadaPro --batch examples/turtle-square.graphml --plugin-path editor-plugin/
     --run-plugin hsm-ros2:check --dump-plugin
 ```
 
-`test/test_check.py` covers `--check`/`--json`, `test/test_editor_plugin.py` the
-descriptor, the adapter and, when the editor is found, a batch run of every action.
+`test/test_check.py` covers `--check`/`--json` and the expectations comment,
+`test/test_editor_plugin.py` the descriptor, the adapter and, when the editor is found, a
+batch run. The `test` action itself is tested with its runner in `hsm_robot_ros_tests`.

@@ -3,7 +3,7 @@
   "id": "hsm-ros2",
   "name": "HSM ROS2",
   "version": "1.0.0",
-  "description": "Checks the diagram against the HSM-ROS2 robot API, generates the hsm_controller ROS 2 package and builds it with colcon. Needs ROS 2 with the hsm_generator and hsm_interfaces packages.",
+  "description": "Checks the diagram against the HSM-ROS2 robot API, generates the hsm_controller ROS 2 package, builds it with colcon and tests the diagram with the fake robot. Needs ROS 2 with the hsm_generator and hsm_interfaces packages, and hsm_tests for the test.",
   "interpreter": "bash",
   "parameters": [
     {
@@ -24,6 +24,71 @@
       "create": true,
       "required": true,
       "description": "The colcon workspace of the generated package"
+    },
+    {
+      "id": "duration",
+      "type": "int",
+      "label": "Test duration, s",
+      "scope": "document",
+      "default": 30,
+      "min": 1,
+      "description": "The run stops earlier when every expectation holds"
+    },
+    {
+      "id": "x",
+      "type": "double",
+      "label": "Start X, m",
+      "scope": "document",
+      "default": 0.0,
+      "description": "The start position of the robot"
+    },
+    {
+      "id": "y",
+      "type": "double",
+      "label": "Start Y, m",
+      "scope": "document",
+      "default": 0.0,
+      "description": "The start position of the robot"
+    },
+    {
+      "id": "theta",
+      "type": "double",
+      "label": "Start heading, rad",
+      "scope": "document",
+      "default": 0.0,
+      "description": "The start heading of the robot"
+    },
+    {
+      "id": "scan_forward",
+      "type": "double",
+      "label": "Obstacle ahead, m",
+      "scope": "document",
+      "default": 10.0,
+      "description": "The distance the laser scan reports; 10: free space"
+    },
+    {
+      "id": "scan_right",
+      "type": "double",
+      "label": "Obstacle to the right, m",
+      "scope": "document",
+      "default": 10.0,
+      "description": "The distance the laser scan reports; 10: free space"
+    },
+    {
+      "id": "scan_elsewhere",
+      "type": "double",
+      "label": "Obstacle elsewhere, m",
+      "scope": "document",
+      "default": 10.0,
+      "description": "The distance the laser scan reports; 10: free space"
+    },
+    {
+      "id": "realtime",
+      "type": "bool",
+      "label": "Real-time timers",
+      "scope": "document",
+      "default": false,
+      "description": "Run the timers at their real periods instead of the shortened ones"
     }
   ],
   "actions": [
@@ -103,6 +168,57 @@
       "parameters": [
         "setup",
         "ws"
+      ]
+    },
+    {
+      "id": "test",
+      "label": "Test with the fake robot...",
+      "result": "diagnostics",
+      "exit_ok": [
+        0,
+        1
+      ],
+      "timeout": 0,
+      "icon": "icons/test.svg",
+      "toolbar": true,
+      "description": "Run the diagram against the fake robot and check the expectations of its ros2 hsm test comment; the event timeline streams into the plugin's output tab",
+      "argv": [
+        "${plugin_dir}/ros2_env",
+        "--setup",
+        "${param:setup}",
+        "--ros-exec",
+        "hsm_tests",
+        "hsm_robot_test",
+        "${input}",
+        "--json",
+        "${diagnostics}",
+        "--duration",
+        "${param:duration}",
+        "--pose",
+        "${param:x}",
+        "${param:y}",
+        "${param:theta}",
+        "--scan",
+        "${param:scan_forward}",
+        "${param:scan_right}",
+        "${param:scan_elsewhere}",
+        {
+          "if": "realtime",
+          "argv": [
+            "--real-time"
+          ]
+        }
+      ],
+      "parameters": [
+        "setup",
+        "duration",
+        "x",
+        "y",
+        "theta",
+        "scan_forward",
+        "scan_right",
+        "scan_elsewhere",
+        "realtime"
       ]
     }
   ]

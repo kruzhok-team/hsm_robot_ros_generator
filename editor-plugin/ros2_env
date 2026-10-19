@@ -21,7 +21,7 @@
 #
 # -----------------------------------------------------------------------------
 #
-# ros2_env --setup FILE [--cd DIR] hsm_generator|COMMAND ARGS...
+# ros2_env --setup FILE [--cd DIR] hsm_generator|--ros-exec PACKAGE EXECUTABLE|COMMAND ARGS...
 
 EXIT_USAGE=5
 PLUGIN_DIR=$(dirname "$(readlink -f "$0")")
@@ -55,6 +55,22 @@ if [ -n "$WORKDIR" ]; then
     fi
 fi
 
+# the program replaces this shell: ros2 run would keep it as a child the editor's SIGTERM
+# never reaches
+ros_exec() {
+    command -v ros2 > /dev/null || fail "ros2 is not found; check the ROS 2 setup"
+    PREFIX=$(ros2 pkg prefix "$1" 2> /dev/null) || fail "the package $1 is not found; check the ROS 2 setup"
+    [ -x "$PREFIX/lib/$1/$2" ] || fail "$2 is not found in the package $1"
+    PROGRAM=$PREFIX/lib/$1/$2
+    shift 2
+    exec "$PROGRAM" "$@"
+}
+
+if [ "$1" = --ros-exec ]; then
+    [ $# -ge 3 ] || fail "--ros-exec needs a package and an executable"
+    shift
+    ros_exec "$@"
+fi
 if [ "$1" = hsm_generator ]; then
     shift
     GENERATOR=${HSM_GENERATOR:-}
@@ -62,8 +78,7 @@ if [ "$1" = hsm_generator ]; then
         GENERATOR=$PLUGIN_DIR/../hsm_generator.py
     fi
     if [ -z "$GENERATOR" ]; then
-        command -v ros2 > /dev/null || fail "ros2 is not found; check the ROS 2 setup"
-        exec ros2 run hsm_generator hsm_generator "$@"
+        ros_exec hsm_generator hsm_generator "$@"
     fi
     case "$GENERATOR" in
         *.py) exec python3 "$GENERATOR" "$@" ;;

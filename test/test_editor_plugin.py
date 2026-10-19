@@ -23,6 +23,7 @@
 
 import json
 import os
+import re
 import shutil
 import subprocess
 
@@ -54,10 +55,16 @@ def test_descriptor_is_consistent():
     assert plugin['id'] == 'hsm-ros2'
     assert plugin['name'] == 'HSM ROS2'
     parameters = {p['id'] for p in plugin['parameters']}
-    assert sorted(a['id'] for a in plugin['actions']) == ['build', 'check', 'generate']
+    assert sorted(a['id'] for a in plugin['actions']) == ['build', 'check', 'generate', 'test']
     for action in plugin['actions']:
         assert action['result'] in RESULTS
         assert set(action['parameters']) <= parameters
+        # a parameter an argv names is offered by the action's dialog
+        names = set()
+        for item in action['argv']:
+            names |= {item['if']} if isinstance(item, dict) else \
+                set(re.findall(r'\$\{param:(\w+)\}', item))
+        assert names <= set(action['parameters']), action['id']
         assert action['argv'][0] == '${plugin_dir}/ros2_env'
         if 'icon' in action:
             assert os.path.isfile(os.path.join(PLUGIN_DIR, action['icon']))
@@ -104,6 +111,27 @@ def test_adapter_reports_a_usage_error(args):
     result = adapter(*args)
     assert result.returncode == EXIT_ADAPTER_USAGE
     assert result.stderr.startswith('ros2_env: ')
+
+
+def test_adapter_execs_a_ros_executable(tmp_path):
+    # a fake prefix stands for the package, the way ros2 pkg prefix reports it
+    prefix = tmp_path / 'prefix'
+    (prefix / 'lib' / 'pkg').mkdir(parents=True)
+    program = prefix / 'lib' / 'pkg' / 'tool'
+    program.write_text('#!/bin/bash\necho "tool $*"\n')
+    program.chmod(0o755)
+    bin_dir = tmp_path / 'bin'
+    bin_dir.mkdir()
+    (bin_dir / 'ros2').write_text('#!/bin/bash\n[ "$1 $2 $3" = "pkg prefix pkg" ] && echo {}\n'
+                                  .format(prefix))
+    (bin_dir / 'ros2').chmod(0o755)
+    env = dict(os.environ, PATH=str(bin_dir) + os.pathsep + os.environ['PATH'])
+    result = adapter('--setup', '', '--ros-exec', 'pkg', 'tool', 'a', 'b', env=env)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == 'tool a b'
+    result = adapter('--setup', '', '--ros-exec', 'absent', 'tool', env=env)
+    assert result.returncode == EXIT_ADAPTER_USAGE
+    assert 'absent is not found' in result.stderr
 
 
 def test_adapter_runs_the_generator_of_the_source_tree(tmp_path):

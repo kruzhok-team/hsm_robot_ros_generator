@@ -46,6 +46,7 @@ REPORTED = {
     'empty_state_name': 'empty name',
     'spaced_name': 'spaces in name',
     'duplicate_name': 'same qualified name',
+    'bad_test_rule': 'test rule',
 }
 
 

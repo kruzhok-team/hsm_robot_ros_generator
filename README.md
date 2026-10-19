@@ -18,7 +18,8 @@ diagnostics file of the CyberiadaPro editor.
 ## Editor plugin
 
 The `editor-plugin` directory is the `hsm-ros2` plugin of CyberiadaPro ("HSM ROS2"): it
-checks the diagram, generates the package into a colcon workspace and builds it. Install
+checks the diagram, generates the package into a colcon workspace, builds it and tests the
+diagram against the fake robot of `hsm_robot_ros_tests`. Install
 it into the user plugin folder of the editor from a sourced workspace:
 
     ros2 run hsm_generator hsm_generator --install-editor-plugin

@@ -1,5 +1,6 @@
 {
   "HSM ROS2": "ROS2 ПРИМС",
+  "Checks the diagram against the HSM-ROS2 robot API, generates the hsm_controller ROS 2 package, builds it with colcon and tests the diagram with the fake robot. Needs ROS 2 with the hsm_generator and hsm_interfaces packages, and hsm_tests with the hsmd dispatcher for the test.": "Проверяет диаграмму ПРИМС по программному интерфейсу робота HSM-ROS2, генерирует по ней пакет ROS 2 hsm_controller, собирает его с помощью colcon и испытывает диаграмму на имитаторе робота. Для работы нужен ROS 2 с пакетами hsm_generator и hsm_interfaces, а для испытания — hsm_tests с диспетчером hsmd.",
   "ROS 2 setup script": "Сценарий настройки ROS 2",
   "Setup scripts (*.bash)": "Сценарии настройки (*.bash)",
   "The setup.bash providing hsm_generator and hsm_interfaces; empty: the editor's environment": "Файл setup.bash, в котором есть hsm_generator и hsm_interfaces; пусто — окружение редактора",
@@ -11,7 +12,6 @@
   "Write the hsm_controller package into the src directory of the workspace": "Записать пакет hsm_controller в каталог src рабочего пространства",
   "Build the package": "Собрать пакет",
   "Build the generated package with colcon; its output streams into the plugin's output tab": "Собрать сгенерированный пакет с помощью colcon; его вывод появляется во вкладке вывода плагина",
-  "Checks the diagram against the HSM-ROS2 robot API, generates the hsm_controller ROS 2 package, builds it with colcon and tests the diagram with the fake robot. Needs ROS 2 with the hsm_generator and hsm_interfaces packages, and hsm_tests for the test.": "Проверяет диаграмму ПРИМС по программному интерфейсу робота HSM-ROS2, генерирует по ней пакет ROS 2 hsm_controller, собирает его с помощью colcon и испытывает диаграмму на имитаторе робота. Для работы нужен ROS 2 с пакетами hsm_generator и hsm_interfaces, а для испытания — hsm_tests.",
   "Test duration, s": "Длительность испытания, с",
   "The run stops earlier when every expectation holds": "Испытание заканчивается раньше, когда выполнены все ожидания",
   "Start X, m": "Начальная X, м",

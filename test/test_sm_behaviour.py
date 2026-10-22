@@ -184,6 +184,7 @@ def test_final_state_terminates_the_controller(controller):
     node.dispatch_event('TIMER_TICK', None)
     assert hsm_stubs.dispatcher(node).finished()
     assert node.terminated
+    assert not node.failed
 
 
 def test_error_of_the_diagram_code_stops_the_controller(controller):
@@ -191,4 +192,6 @@ def test_error_of_the_diagram_code_stops_the_controller(controller):
     # the action reads the argument the event does not carry
     node.dispatch_event('TIMER_ELAPSED', None)
     assert node.terminated
+    # the controller ends with an error code, not as a finished machine
+    assert node.failed
     assert [level for level, _ in node.logged] == ['error']

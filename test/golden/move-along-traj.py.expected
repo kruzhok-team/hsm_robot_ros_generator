@@ -11,6 +11,8 @@
 #
 # -----------------------------------------------------------------------------
 
+import sys
+
 import rclpy
 from rclpy.executors import ExternalShutdownException
 import hsmd
@@ -28,6 +30,8 @@ Storage = None
 Wheels = None
 # the event being processed, set by the dispatcher
 event = None
+# the exit code of a controller stopped by an error of the diagram code
+EXIT_DIAGRAM_ERROR = 1
 
 
 def on_st_move_along_trajectory_follow_the_path_enter():
@@ -94,6 +98,7 @@ class Move_along_trajectory_HSMController(hsm_controller.base_hsm_controller.Bas
     def __init__(self):
         # the base controller may process the messages while it waits for the services
         self.__dispatcher = None
+        self.failed = False
         hsm_controller.base_hsm_controller.BaseHSMController.__init__(
             self,
             self.OBJECT_NAME,
@@ -130,6 +135,7 @@ class Move_along_trajectory_HSMController(hsm_controller.base_hsm_controller.Bas
             step(*args, **parameters)
         except hsmd.DispatcherError as e:
             self.get_logger().error('The state machine is stopped: {}'.format(e))
+            self.failed = True
             self.terminate()
             return
         if dispatcher.finished():
@@ -146,6 +152,9 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.try_shutdown()
+    # a run stopped by an error is not a finished one for whoever started it
+    if node.failed:
+        sys.exit(EXIT_DIAGRAM_ERROR)
 
 
 if __name__ == "__main__":

@@ -62,7 +62,8 @@ The descriptor names `bash` as the interpreter, so the adapter needs no executab
 * `test` runs the diagram against the fake robot of `hsm_robot_ros_tests` (the
   `hsm_robot_test` runner, `docs/hsm_robot_testing.md` §10 there) and reports every failed
   expectation of the `ros2 hsm test` comment; its output is the event timeline. It needs
-  the `hsm_tests` package in the `setup` environment. Cancel stops the whole run.
+  the `hsm_tests` package and the HSM dispatcher `hsmd` (`python3-hsm-dispatcher`) the
+  generated controller runs on in the `setup` environment. Cancel stops the whole run.
 * All four are on the plugin toolbar.
 
 ## Parameters
@@ -130,7 +131,8 @@ a check reports one finding at a time.
 
 The `test` action writes the same file: `[]` when the run passes, otherwise an entry per
 failed expectation, rule `test-failed`, pointing at the `ros2 hsm test` comment, or rule
-`test-controller` when the controller ends with an error. A diagram the generator rejects
+`test-controller` when the controller ends with an error, e.g. an error of the diagram
+code which stops the dispatcher (the controller exits with 1). A diagram the generator rejects
 gets the generator's finding. A node of the framework which fails to start fails the
 action itself.
 

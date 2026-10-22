@@ -3,7 +3,7 @@
   "id": "hsm-ros2",
   "name": "HSM ROS2",
   "version": "1.0.0",
-  "description": "Checks the diagram against the HSM-ROS2 robot API, generates the hsm_controller ROS 2 package, builds it with colcon and tests the diagram with the fake robot. Needs ROS 2 with the hsm_generator and hsm_interfaces packages, and hsm_tests for the test.",
+  "description": "Checks the diagram against the HSM-ROS2 robot API, generates the hsm_controller ROS 2 package, builds it with colcon and tests the diagram with the fake robot. Needs ROS 2 with the hsm_generator and hsm_interfaces packages, and hsm_tests with the hsmd dispatcher for the test.",
   "interpreter": "bash",
   "parameters": [
     {

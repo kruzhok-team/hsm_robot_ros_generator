@@ -30,14 +30,25 @@ import datetime
 
 import CyberiadaML
 
-GLOBAL_PARAM_LABEL = 'global parameters'
-GLOBAL_PARAM_SEPARATOR = ':'
 GLOBAL_PARAM_VERSION = 'version'
 GLOBAL_PARAM_AUTHOR = 'author'
 GLOBAL_PARAM_EMAIL = 'author e-mail'
 GLOBAL_PARAM_LICENSE = 'license'
 GLOBAL_PARAM_ALL = (GLOBAL_PARAM_VERSION, GLOBAL_PARAM_AUTHOR, GLOBAL_PARAM_EMAIL, GLOBAL_PARAM_LICENSE)
+# the package parameters in the CGML_META of the document (PNST 1044, 6.9)
+META_PARAMETERS = {'version': GLOBAL_PARAM_VERSION, 'author': GLOBAL_PARAM_AUTHOR,
+                   'contact': GLOBAL_PARAM_EMAIL, 'license': GLOBAL_PARAM_LICENSE}
+META_NAME = 'CGML_META'
 
+# an API module used by the diagram: CGML_COMPONENT <Module> with type/ <Module> (10.3)
+COMPONENT_PREFIX = 'CGML_COMPONENT '
+PARAMETER_SEPARATOR = '/'
+PARAMETER_TYPE = 'type'
+
+# the keys of the convention comments: the name of a formal comment or the first line of
+# an informal one; the first two are the legacy yEd forms of CGML_META and CGML_COMPONENT
+GLOBAL_PARAM_LABEL = 'global parameters'
+GLOBAL_PARAM_SEPARATOR = ':'
 ROS2_HSM_MODULES_LABEL = 'ros2 hsm modules'
 # the expectations of a test run of the diagram, one rule per line
 ROS2_HSM_TEST_LABEL = 'ros2 hsm test'
@@ -143,13 +154,38 @@ class GeneratorError(ConvertorError):
         ConvertorError.__init__(self, msg)
 
 
+def comment_key(text):
+    # the key ignores case, underscores, extra spaces and a trailing colon
+    return ' '.join(text.replace('_', ' ').strip().rstrip(':').lower().split())
+
+
+def parse_parameters(body):
+    # the name/value blocks of a formal comment (PNST 1044, 6.9, 10.3.1); None when
+    # a line is not a parameter
+    parameters = {}
+    name = None
+    for line in body.split('\n'):
+        if not line.strip():
+            name = None
+            continue
+        if name is None:
+            if PARAMETER_SEPARATOR not in line:
+                return None
+            name, value = line.split(PARAMETER_SEPARATOR, 1)
+            name = name.strip()
+            parameters[name] = value.strip()
+        else:
+            parameters[name] += '\n' + line
+    return parameters
+
+
 def api_event_names():
     # the events any module of the API reports, whether the diagram declares it or not
     return {name for events in HSM_EVENTS.values() for name in events.values()}
 
 
 def parse_test_rules(text, element=None):
-    # the rules of a 'ros2 hsm test' comment, without its first line; within is None for
+    # the rules of a 'ROS2 HSM Test' comment, its content only; within is None for
     # the whole run
     rules = []
     known = api_event_names()
@@ -241,41 +277,8 @@ class CodeGenerator:
             self.__sm_name_lo = self.__sm_name.lower()
             self.__sm_name_cap = self.__sm_name[0].upper() + self.__sm_name[1:].lower()
 
-            all_signals = {''}
-
-            # Read global parameters from the standard comments
-            for comment in self.__graph.find_elements_by_type(CyberiadaML.elementComment):
-                text = comment.get_body()
-                if text.lower().find(ROS2_HSM_MODULES_LABEL) == 0:
-                    for i, line in enumerate(text.splitlines()):
-                        if i == 0:
-                            continue
-                        line = line.strip()
-                        if len(line) == 0:
-                            continue
-                        module = line
-                        self.__hsm_modules.append(module)
-                        if module not in HSM_EVENTS:
-                            raise ParserError('The graph {} contains '.format(self.__graph_file) +
-                                              'unknown module "{}"!\n'.format(module),
-                                              'unknown-module', comment.get_id())
-                        for s in HSM_EVENTS[module].values():
-                            all_signals.add(s)
-                elif text.lower().find(ROS2_HSM_TEST_LABEL) == 0:
-                    self.__test_comment = comment.get_id()
-                    self.__test_rules = parse_test_rules(text.split('\n', 1)[1] if '\n' in text else '',
-                                                         comment.get_id())
-                elif text.lower().find(GLOBAL_PARAM_LABEL) == 0:
-                    for i, line in enumerate(text.splitlines()):
-                        if i == 0:
-                            continue
-                        line = line.strip()
-                        if len(line) == 0:
-                            continue
-                        name, value = (s.strip() for s in line.split(GLOBAL_PARAM_SEPARATOR))
-                        name = name.lower()
-                        if name in GLOBAL_PARAM_ALL:
-                            self.__global_parameters[name] = value
+            # the events of the declared modules
+            all_signals = {''}.union(*(HSM_EVENTS[m].values() for m in self.__read_comments()))
 
             # A module may imply other modules (Navigation implies Wheels). The implied
             # modules are added to the diagram's module list here, so their callers are
@@ -415,6 +418,67 @@ class CodeGenerator:
 
         except CYBERIADAML_EXCEPTIONS as e:
             raise ParserError('CyberiadaML {}: {}\n'.format(e.__class__.__name__, e), 'cyberiadaml')
+
+    def __read_comments(self):
+        # the package parameters, the API modules and the test rules of the diagram; the
+        # modules are returned in the order of their declaration
+        for name, key in META_PARAMETERS.items():
+            value = self.__doc.meta().get_string(name)
+            if value:
+                self.__global_parameters[key] = value
+        legacy = {}
+        comments = [(c, comment_key(c.get_name()), c.get_body())
+                    for c in self.__graph.find_elements_by_type(CyberiadaML.elementFormalComment)]
+        for c in self.__graph.find_elements_by_type(CyberiadaML.elementComment):
+            first, _, rest = c.get_body().partition('\n')
+            comments.append((c, comment_key(first), rest))
+        for comment, key, body in comments:
+            name = comment.get_name() if comment.get_type() == CyberiadaML.elementFormalComment else ''
+            if name.startswith(COMPONENT_PREFIX):
+                self.__read_component(comment, name[len(COMPONENT_PREFIX):].strip(), body)
+            elif key == ROS2_HSM_MODULES_LABEL:
+                for line in body.splitlines():
+                    if line.strip():
+                        self.__add_module(line.strip(), comment)
+            elif key == ROS2_HSM_TEST_LABEL:
+                self.__test_comment = comment.get_id()
+                self.__test_rules = parse_test_rules(body, comment.get_id())
+            elif key == GLOBAL_PARAM_LABEL:
+                for line in body.splitlines():
+                    if GLOBAL_PARAM_SEPARATOR in line:
+                        name, value = (t.strip() for t in line.split(GLOBAL_PARAM_SEPARATOR, 1))
+                        if name.lower() in GLOBAL_PARAM_ALL:
+                            legacy[name.lower()] = value
+        # the legacy comment fills only what the metainformation leaves out
+        for key, value in legacy.items():
+            self.__global_parameters.setdefault(key, value)
+        return self.__hsm_modules
+
+    def __read_component(self, comment, ident, body):
+        parameters = parse_parameters(body)
+        if parameters is None:
+            raise ParserError('The graph {} has the component {} with a line that is not '
+                              'a name/ value parameter!\n'.format(self.__graph_file, ident),
+                              'component-syntax', comment.get_id())
+        if PARAMETER_TYPE not in parameters:
+            raise ParserError('The graph {} has the component {} without a type!\n'.format(
+                self.__graph_file, ident), 'component-type', comment.get_id())
+        module = parameters[PARAMETER_TYPE]
+        self.__add_module(module, comment)
+        # the module is one per robot and the diagram code calls it by its name
+        if ident != module:
+            raise ParserError('The graph {} names the {} component {}; an API module is '
+                              'named after its type!\n'.format(self.__graph_file, module, ident),
+                              'component-id', comment.get_id())
+
+    def __add_module(self, module, comment):
+        if module not in HSM_EVENTS:
+            raise ParserError('The graph {} contains unknown module "{}"!\n'.format(
+                self.__graph_file, module), 'unknown-module', comment.get_id())
+        if module in self.__hsm_modules:
+            raise ParserError('The graph {} declares the module {} twice!\n'.format(
+                self.__graph_file, module), 'duplicate-module', comment.get_id())
+        self.__hsm_modules.append(module)
 
     def test_rules(self):
         # the expectations of a test run and the id of the comment holding them

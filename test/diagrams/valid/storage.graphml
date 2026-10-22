@@ -5,10 +5,26 @@
   <key id="dName" for="graph" attr.name="name" attr.type="string"/>
   <key id="dName" for="node" attr.name="name" attr.type="string"/>
   <key id="dStateMachine" for="graph" attr.name="stateMachine" attr.type="string"/>
+  <key id="dRegion" for="graph" attr.name="region" attr.type="string"/>
+  <key id="dSubmachineState" for="node" attr.name="submachineState" attr.type="string"/>
+  <key id="dGeometry" for="graph" attr.name="geometry"/>
+  <key id="dGeometry" for="node" attr.name="geometry"/>
+  <key id="dGeometry" for="edge" attr.name="geometry"/>
+  <key id="dSourcePoint" for="edge" attr.name="sourcePoint"/>
+  <key id="dTargetPoint" for="edge" attr.name="targetPoint"/>
+  <key id="dLabelGeometry" for="edge" attr.name="labelGeometry"/>
   <key id="dNote" for="node" attr.name="note" attr.type="string"/>
   <key id="dVertex" for="node" attr.name="vertex" attr.type="string"/>
   <key id="dData" for="node" attr.name="data" attr.type="string"/>
   <key id="dData" for="edge" attr.name="data" attr.type="string"/>
+  <key id="dPivot" for="edge" attr.name="pivot" attr.type="string"/>
+  <key id="dChunk" for="edge" attr.name="chunk" attr.type="string"/>
+  <key id="dCollapsed" for="node" attr.name="collapsed" attr.type="string"/>
+  <key id="dMarkup" for="node" attr.name="markup" attr.type="string"/>
+  <key id="dColor" for="node" attr.name="color" attr.type="string"/>
+  <key id="dColor" for="edge" attr.name="color" attr.type="string"/>
+  <key id="dFormalName" for="graph" attr.name="formalName" attr.type="string"/>
+  <key id="dFormalName" for="node" attr.name="formalName" attr.type="string"/>
   <graph id="G" edgedefault="directed">
     <data key="dStateMachine"/>
     <data key="dName">storage_reader</data>
@@ -18,24 +34,18 @@
       <data key="dData">standardVersion/ 1.0
 
 name/ storage_reader
-</data>
-    </node>
-    <node id="nParams">
-      <data key="dNote">informal</data>
-      <data key="dData">Global Parameters
 
-Version: 1.0.0
-Author: Alexey Fedoseev
-Author e-mail: aleksey@fedoseev.net
-License: LGPL 3.0</data>
-    </node>
-    <node id="nModules">
-      <data key="dNote">informal</data>
-      <data key="dData">ROS2 HSM Modules
+version/ 1.0.0
 
-Debug
-Storage
-Timer</data>
+author/ Alexey Fedoseev
+
+contact/ aleksey@fedoseev.net
+
+license/ LGPL 3.0
+
+platform/ HSM-ROS2
+
+platformLanguage/ Python</data>
     </node>
     <node id="nInit">
       <data key="dVertex">initial</data>
@@ -45,28 +55,47 @@ Timer</data>
       <data key="dName">load</data>
       <data key="dData">entry/
 Storage.load('path')
-Timer.start(1)</data>
+Timer.start(1)
+</data>
     </node>
     <node id="nRead">
       <data key="dName">read</data>
       <data key="dData">entry/
 pnt = Storage.next('path')
-Debug.println(str(pnt))</data>
+Debug.println(str(pnt))
+</data>
     </node>
     <node id="nDone">
       <data key="dName">done</data>
       <data key="dData">entry/
-Debug.println('done')</data>
+Debug.println('done')
+</data>
     </node>
-    <edge id="e0" source="nInit" target="nLoad"/>
+    <node id="cDebug">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT Debug</data>
+      <data key="dData">type/ Debug</data>
+    </node>
+    <node id="cStorage">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT Storage</data>
+      <data key="dData">type/ Storage</data>
+    </node>
+    <node id="cTimer">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT Timer</data>
+      <data key="dData">type/ Timer</data>
+    </node>
+    <edge id="e0" source="nInit" target="nLoad">
+    </edge>
     <edge id="e1" source="nLoad" target="nRead">
       <data key="dData">TIMER_ELAPSED/</data>
     </edge>
     <edge id="e2" source="nRead" target="nRead">
-      <data key="dData">TIMER_TICK[Storage.has_data('path')]/</data>
+      <data key="dData">TIMER_TICK [Storage.has_data('path')]/</data>
     </edge>
     <edge id="e3" source="nRead" target="nDone">
-      <data key="dData">TIMER_TICK[not Storage.has_data('path')]/</data>
+      <data key="dData">TIMER_TICK [not Storage.has_data('path')]/</data>
     </edge>
   </graph>
 </graphml>

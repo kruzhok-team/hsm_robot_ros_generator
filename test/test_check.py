@@ -41,7 +41,11 @@ FINDINGS = {
     # the library rejects the second initial pseudostate before the generator does
     'two_initial': ('cyberiadaml', None),
     'dangling_initial': ('no-initial-state', None),
-    'unknown_module': ('unknown-module', 'nModules'),
+    'unknown_module': ('unknown-module', 'cTelepathy'),
+    'component_id': ('component-id', 'cTimer'),
+    'component_type': ('component-type', 'cTimer'),
+    'component_syntax': ('component-syntax', 'cTimer'),
+    'duplicate_module': ('duplicate-module', 'cTimer2'),
     'undeclared_module': ('undeclared-module', 'nA'),
     'unknown_event': ('undefined-event', 'e1'),
     'unknown_event_internal': ('undefined-event', 'nA'),

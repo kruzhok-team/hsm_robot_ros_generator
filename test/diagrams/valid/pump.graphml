@@ -5,10 +5,26 @@
   <key id="dName" for="graph" attr.name="name" attr.type="string"/>
   <key id="dName" for="node" attr.name="name" attr.type="string"/>
   <key id="dStateMachine" for="graph" attr.name="stateMachine" attr.type="string"/>
+  <key id="dRegion" for="graph" attr.name="region" attr.type="string"/>
+  <key id="dSubmachineState" for="node" attr.name="submachineState" attr.type="string"/>
+  <key id="dGeometry" for="graph" attr.name="geometry"/>
+  <key id="dGeometry" for="node" attr.name="geometry"/>
+  <key id="dGeometry" for="edge" attr.name="geometry"/>
+  <key id="dSourcePoint" for="edge" attr.name="sourcePoint"/>
+  <key id="dTargetPoint" for="edge" attr.name="targetPoint"/>
+  <key id="dLabelGeometry" for="edge" attr.name="labelGeometry"/>
   <key id="dNote" for="node" attr.name="note" attr.type="string"/>
   <key id="dVertex" for="node" attr.name="vertex" attr.type="string"/>
   <key id="dData" for="node" attr.name="data" attr.type="string"/>
   <key id="dData" for="edge" attr.name="data" attr.type="string"/>
+  <key id="dPivot" for="edge" attr.name="pivot" attr.type="string"/>
+  <key id="dChunk" for="edge" attr.name="chunk" attr.type="string"/>
+  <key id="dCollapsed" for="node" attr.name="collapsed" attr.type="string"/>
+  <key id="dMarkup" for="node" attr.name="markup" attr.type="string"/>
+  <key id="dColor" for="node" attr.name="color" attr.type="string"/>
+  <key id="dColor" for="edge" attr.name="color" attr.type="string"/>
+  <key id="dFormalName" for="graph" attr.name="formalName" attr.type="string"/>
+  <key id="dFormalName" for="node" attr.name="formalName" attr.type="string"/>
   <graph id="G" edgedefault="directed">
     <data key="dStateMachine"/>
     <data key="dName">pump_control</data>
@@ -18,24 +34,18 @@
       <data key="dData">standardVersion/ 1.0
 
 name/ pump_control
-</data>
-    </node>
-    <node id="nParams">
-      <data key="dNote">informal</data>
-      <data key="dData">Global Parameters
 
-Version: 1.0.0
-Author: Alexey Fedoseev
-Author e-mail: aleksey@fedoseev.net
-License: LGPL 3.0</data>
-    </node>
-    <node id="nModules">
-      <data key="dNote">informal</data>
-      <data key="dData">ROS2 HSM Modules
+version/ 1.0.0
 
-Debug
-Pump
-Timer</data>
+author/ Alexey Fedoseev
+
+contact/ aleksey@fedoseev.net
+
+license/ LGPL 3.0
+
+platform/ HSM-ROS2
+
+platformLanguage/ Python</data>
     </node>
     <node id="nInit">
       <data key="dVertex">initial</data>
@@ -45,15 +55,33 @@ Timer</data>
       <data key="dName">pump_off</data>
       <data key="dData">entry/
 Pump.turn_off()
-Timer.start(5)</data>
+Timer.start(5)
+</data>
     </node>
     <node id="nOn">
       <data key="dName">pump_on</data>
       <data key="dData">entry/
 Pump.turn_on()
-Timer.start(5)</data>
+Timer.start(5)
+</data>
     </node>
-    <edge id="e0" source="nInit" target="nOff"/>
+    <node id="cDebug">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT Debug</data>
+      <data key="dData">type/ Debug</data>
+    </node>
+    <node id="cPump">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT Pump</data>
+      <data key="dData">type/ Pump</data>
+    </node>
+    <node id="cTimer">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT Timer</data>
+      <data key="dData">type/ Timer</data>
+    </node>
+    <edge id="e0" source="nInit" target="nOff">
+    </edge>
     <edge id="e1" source="nOff" target="nOn">
       <data key="dData">TIMER_ELAPSED/</data>
     </edge>

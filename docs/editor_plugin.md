@@ -43,6 +43,8 @@ The editor never sources a ROS 2 setup: it is usually started from the desktop. 
 generator needs one (it reads the event tables through `hsm_interfaces`), and so does
 colcon, so every action goes through the `ros2_env` adapter.
 The descriptor names `bash` as the interpreter, so the adapter needs no executable bit.
+The `hsm-turtle` plugin (`turtle_driver/docs/editor_plugin.md`) runs its actions through this
+adapter as well, found in the share directory of this package.
 
 ## Actions
 
@@ -168,6 +170,7 @@ duration. The comment changes nothing in the generated code; `--check` validates
 
 The installer copies the folder and pins `HSM_GENERATOR` and the `setup` default to the
 generator and the ROS 2 environment it runs from.
+`hsmplugin.install` takes the plugin id, so the other plugins of the framework install the same way.
 
 ## Test
 

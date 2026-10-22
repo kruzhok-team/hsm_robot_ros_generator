@@ -162,6 +162,18 @@ def test_installer_pins_the_generator_and_the_setup(tmp_path):
         hsmplugin.install(PLUGIN_DIR, '/opt/gen/hsm_generator', str(foreign))
 
 
+def test_installer_takes_another_plugin(tmp_path):
+    # the installer of the other plugins sharing the adapter, e.g. hsm-turtle
+    import hsmplugin
+    origin = tmp_path / 'origin'
+    origin.mkdir()
+    (origin / 'plugin.json').write_text(json.dumps({'id': 'hsm-other', 'parameters': []}))
+    folder = hsmplugin.install(str(origin), None, str(tmp_path / 'out'), plugin_id='hsm-other')
+    assert folder == os.path.join(str(tmp_path), 'out', 'hsm-other')
+    with open(os.path.join(folder, 'plugin.json'), encoding='utf-8') as f:
+        assert 'env' not in json.load(f)
+
+
 EDITOR = os.environ.get('CYBERIADA_PRO') or shutil.which('CyberiadaPro')
 # the generator needs a sourced ROS 2 environment, the editor run starts from it
 SETUP = os.path.join(os.environ.get('COLCON_PREFIX_PATH', '').split(os.pathsep)[0],

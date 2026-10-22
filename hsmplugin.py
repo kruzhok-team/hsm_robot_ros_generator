@@ -59,17 +59,18 @@ def ros_setup(environ=None):
     return None
 
 
-def _ours(folder):
+def _ours(folder, plugin_id):
     try:
         with open(os.path.join(folder, DESCRIPTOR), encoding='utf-8') as file:
-            return json.load(file).get('id') == PLUGIN_ID
+            return json.load(file).get('id') == plugin_id
     except (OSError, ValueError, AttributeError):
         return False
 
 
 def pinned(descriptor, generator, setup):
-    # the descriptor running the given generator in the given environment
-    descriptor.setdefault('env', {})[GENERATOR_VARIABLE] = generator
+    # the descriptor running the given generator (if any) in the given environment
+    if generator:
+        descriptor.setdefault('env', {})[GENERATOR_VARIABLE] = generator
     if setup:
         for parameter in descriptor.get('parameters', []):
             if parameter.get('id') == SETUP_PARAMETER:
@@ -77,16 +78,16 @@ def pinned(descriptor, generator, setup):
     return descriptor
 
 
-def install(origin, generator, target=None, setup=None):
-    # copy the plugin directory origin into target/hsm-ros2 (the user plugin folder of
+def install(origin, generator, target=None, setup=None, plugin_id=PLUGIN_ID):
+    # copy the plugin directory origin into target/<plugin_id> (the user plugin folder of
     # the editor by default), replacing an earlier copy; return the copy
     if not os.path.isfile(os.path.join(origin, DESCRIPTOR)):
         raise PluginError('the editor plugin is not found in {}'.format(origin))
-    folder = os.path.join(target or user_folder(), PLUGIN_ID)
+    folder = os.path.join(target or user_folder(), plugin_id)
     if os.path.abspath(folder) == os.path.abspath(origin):
         raise PluginError('{} is the plugin itself'.format(folder))
-    if os.path.lexists(folder) and not _ours(folder):
-        raise PluginError('{} exists and is not the plugin {}'.format(folder, PLUGIN_ID))
+    if os.path.lexists(folder) and not _ours(folder, plugin_id):
+        raise PluginError('{} exists and is not the plugin {}'.format(folder, plugin_id))
     try:
         with open(os.path.join(origin, DESCRIPTOR), encoding='utf-8') as file:
             descriptor = pinned(json.load(file), generator, setup or ros_setup())

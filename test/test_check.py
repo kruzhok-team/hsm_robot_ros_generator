@@ -136,3 +136,10 @@ def test_valid_test_comment_is_accepted(tmp_path):
     rules, element = gencode.CodeGenerator(str(diagram)).test_rules()
     assert element == 'nTest'
     assert [r.line for r in rules] == ['TIMER_TICK x3 within 5', 'never COLLISION_DETECTED']
+
+
+def test_usage_lists_modules_triggers_and_code():
+    modules, triggers, code = gencode.CodeGenerator(examples()['turtle-square']).usage()
+    assert 'Navigation' in modules and 'Wheels' in modules
+    assert {event for _, event in triggers} == {'MOVE_COMPLETED'}
+    assert sum('Navigation.move_to_point' in text for _, text in code) == 4

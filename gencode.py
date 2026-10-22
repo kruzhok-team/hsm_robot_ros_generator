@@ -188,6 +188,10 @@ class CodeGenerator:
         self.__sm_signals = {}
         self.__test_rules = []
         self.__test_comment = None
+        # (element id, event) of every trigger and (element id, text) of every guard and
+        # behavior, for the checks of the platforms
+        self.__triggers = []
+        self.__code = []
         # a transition without a trigger is treated as an error unless explicitly
         # allowed; has to be set before the graph is parsed
         self.__allow_empty_trans = kwargs.get('allow_empty_trans', False)
@@ -310,6 +314,8 @@ class CodeGenerator:
                         target_id = element.get_target_element_id()
                         self.__initial = self.__graph.find_element_by_id(target_id)
                         self.__initial_behavior = element.get_action().get_behavior()
+                        if self.__initial_behavior:
+                            self.__code.append((element.get_id(), self.__initial_behavior))
                         continue
                     source_state = self.__graph.find_element_by_id(source_id)
                     if source_state.get_type() == CyberiadaML.elementInitial:
@@ -414,12 +420,19 @@ class CodeGenerator:
         # the expectations of a test run and the id of the comment holding them
         return self.__test_rules, self.__test_comment
 
+    def usage(self):
+        # the modules (with the implied ones), the triggers and the code of the diagram
+        return list(self.__hsm_modules), list(self.__triggers), list(self.__code)
+
     def __check_trigger_and_behavior(self, context, element_id, trigger, guard, behavior):
+        if trigger:
+            self.__triggers.append((element_id, self.__parse_trigger(trigger)[0]))
         # the diagram may call only the API modules it declares: an undeclared module is
         # not imported into the generated controller and fails when the state is entered
         for text in (guard, behavior):
             if not text:
                 continue
+            self.__code.append((element_id, text))
             text = STRING_LITERAL_RE.sub('', text)
             if MATH_USAGE_RE.search(text):
                 self.__uses_math = True

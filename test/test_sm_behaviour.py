@@ -175,3 +175,20 @@ def test_deep_example_resolves_transitions_across_composites(controller):
     assert hsm_stubs.leaf_state(node) == 'right_hand_maze_solver_solver_stop_02'
     node.dispatch_event('STOP_COMPLETED', None)
     assert hsm_stubs.leaf_state(node) == 'right_hand_maze_solver_solver_left_turn_turn_left_2'
+
+
+def test_final_state_terminates_the_controller(controller):
+    node, _ = controller(EXAMPLES['move-along-traj'])
+    node.dispatch_event('MOVE_COMPLETED', None)
+    assert not node.terminated
+    node.dispatch_event('TIMER_TICK', None)
+    assert hsm_stubs.dispatcher(node).finished()
+    assert node.terminated
+
+
+def test_error_of_the_diagram_code_stops_the_controller(controller):
+    node, _ = controller(VALID['timer_elapsed'])
+    # the action reads the argument the event does not carry
+    node.dispatch_event('TIMER_ELAPSED', None)
+    assert node.terminated
+    assert [level for level, _ in node.logged] == ['error']

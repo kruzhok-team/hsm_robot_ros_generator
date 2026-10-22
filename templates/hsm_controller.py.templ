@@ -12,10 +12,14 @@
 
 import rclpy
 from rclpy.executors import ExternalShutdownException
-import pysm
+import hsmd
 %%SM_MATH_IMPORT%%
 import hsm_controller.base_hsm_controller
 %%SM_HSM_IMPORTS%%
+# the event being processed, set by the dispatcher
+event = None
+%%SM_FUNCTIONS%%
+%%SM_MACHINE%%
 
 
 class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMController):
@@ -23,7 +27,8 @@ class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMCo
     OBJECT_NAME = '%%SM_NAME_LO%%_hsm_controller'
 
     def __init__(self):
-        self.__events = {}
+        # the base controller may process the messages while it waits for the services
+        self.__dispatcher = None
         hsm_controller.base_hsm_controller.BaseHSMController.__init__(
             self,
             self.OBJECT_NAME,
@@ -32,21 +37,28 @@ class %%SM_NAME_CAP%%_HSMController(hsm_controller.base_hsm_controller.BaseHSMCo
             %%SM_HAS_SECONDS%%,
             %%SM_HAS_MINUTES%%)
 %%SM_HSM_INITS%%
-        self.__sm = pysm.StateMachine("%%SM_NAME%%")
-%%SM_EVENTS%%
-%%SM_STATES%%
-%%SM_TRANSITIONS%%
-        self.__sm.initialize()
-        self.__sm.dispatch(InitEvent)
-%%SM_ENTRY_HANDLERS%%
-%%SM_GUARDS%%
+        dispatcher = hsmd.Dispatcher(machine, namespace=globals())
+        self.__run(dispatcher, dispatcher.start)
+        self.__dispatcher = dispatcher
+
     def dispatch_event(self, eventstr, arg):
-        if eventstr is not None and eventstr in self.__events:
-            if arg is None:
-                self.__sm.dispatch(pysm.Event(eventstr))
-            else:
-                args = {"value": arg}
-                self.__sm.dispatch(pysm.Event(eventstr, **args))
+        if eventstr is None or self.__dispatcher is None:
+            return
+        if arg is None:
+            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr)
+        else:
+            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr, value=arg)
+
+    def __run(self, dispatcher, step, *args, **parameters):
+        # an error of the diagram code stops the dispatcher, and so the controller
+        try:
+            step(*args, **parameters)
+        except hsmd.DispatcherError as e:
+            self.get_logger().error('The state machine is stopped: {}'.format(e))
+            self.terminate()
+            return
+        if dispatcher.finished():
+            self.terminate()
 
 
 def main(args=None):

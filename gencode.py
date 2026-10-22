@@ -42,9 +42,6 @@ ROS2_HSM_MODULES_LABEL = 'ros2 hsm modules'
 # the expectations of a test run of the diagram, one rule per line
 ROS2_HSM_TEST_LABEL = 'ros2 hsm test'
 
-EMPTY_EVENT = ''
-INIT_EVENT = 'INIT'
-
 TEMPLATE_RE = re.compile(r'%%([^%]+)%%')
 
 
@@ -201,6 +198,7 @@ class CodeGenerator:
         self.__force = force
         self.__quiet = quiet
 
+        self.__machine = None
         self.__load_graph(graph_file, **kwargs)
 
         self.__template_handlers = {
@@ -208,21 +206,18 @@ class CodeGenerator:
             'AUTHOR_EMAIL': self.__global_parameters.get(GLOBAL_PARAM_EMAIL, ''),
             'GENERATOR_INFO': self.__write_generator_info,
             'LICENSE': self.__global_parameters.get(GLOBAL_PARAM_LICENSE, ''),
-            'SM_ENTRY_HANDLERS': self.__write_entries,
-            'SM_EVENTS': self.__write_events,
-            'SM_GUARDS': self.__write_guards,
-            'SM_HAS_TICKS': (HSM_TICK_EVENT in self.__sm_signals) or (EMPTY_EVENT in self.__sm_signals),
+            'SM_FUNCTIONS': self.__write_functions,
+            'SM_HAS_TICKS': HSM_TICK_EVENT in self.__sm_signals,
             'SM_HAS_SECONDS': HSM_TICK_1S_EVENT in self.__sm_signals,
             'SM_HAS_MINUTES': HSM_TICK_1M_EVENT in self.__sm_signals,
             'SM_HSM_OBJECTS': ', '.join("'{}'".format(m) for m in self.__hsm_modules),
             'SM_MATH_IMPORT': 'import math' if self.__uses_math else '',
             'SM_HSM_IMPORTS': self.__write_hsm_imports,
             'SM_HSM_INITS': self.__write_hsm_inits,
+            'SM_MACHINE': self.__write_machine,
             'SM_NAME': self.__sm_name,
             'SM_NAME_LO': self.__sm_name_lo,
             'SM_NAME_CAP': self.__sm_name_cap,
-            'SM_STATES': self.__write_states,
-            'SM_TRANSITIONS': self.__write_transitions,
             'VERSION': self.__global_parameters.get(GLOBAL_PARAM_VERSION, ''),
             'YEAR': datetime.date.today().year
         }
@@ -303,10 +298,7 @@ class CodeGenerator:
 
             # Read states and transitions
             uniq_states = set()
-            self.__handlers = {}
             self.__transitions = []
-            self.__local_transitions = []
-            self.__final_states = len(self.__graph.find_elements_by_type(CyberiadaML.elementFinal)) > 0
 
             types = [CyberiadaML.elementTransition,
                      CyberiadaML.elementSimpleState,
@@ -338,6 +330,9 @@ class CodeGenerator:
                                               'undefined-event', element.get_id())
                         else:
                             self.__sm_signals[signal_name] = None
+                    else:
+                        # an allowed transition without a trigger waits for the next tick
+                        self.__sm_signals[HSM_TICK_EVENT] = None
                     self.__transitions.append(element)
                 else:
                     state_name = element.get_name()
@@ -376,18 +371,7 @@ class CodeGenerator:
                                         'undefined-event', element.get_id())
                                 else:
                                     self.__sm_signals[signal_name] = None
-                            self.__local_transitions.append(element)
                         else:
-                            if full_name not in self.__handlers:
-                                self.__handlers[full_name] = {}
-                            if a.get_type() == CyberiadaML.actionEntry:
-                                entry = 'enter'
-                            else:
-                                assert a.get_type() == CyberiadaML.actionExit
-                                entry = 'exit'
-                            if entry not in self.__handlers[full_name]:
-                                handler_name = 'on_st_{}_{}'.format(full_name, entry)
-                                self.__handlers[full_name][entry] = 'self.' + handler_name
                             self.__check_trigger_and_behavior(full_name, element.get_id(), None, None,
                                                               a.get_behavior())
 
@@ -423,9 +407,6 @@ class CodeGenerator:
                         self.__graph_file, element.get_name()), 'empty-composite', element.get_id())
                 self.__initial_states[element.get_id()] = states[0].get_id()
 
-            for s in self.__sm_signals.keys():
-                self.__sm_signals[s] = s[0].upper() + s[1:].lower()
-
         except CYBERIADAML_EXCEPTIONS as e:
             raise ParserError('CyberiadaML {}: {}\n'.format(e.__class__.__name__, e), 'cyberiadaml')
 
@@ -454,34 +435,8 @@ class CodeGenerator:
         f.write(s)
 
     @classmethod
-    def __w4(cls, f, s):
-        f.write(' ' * 4 + s)
-
-    @classmethod
     def __w8(cls, f, s):
         f.write(' ' * 8 + s)
-
-    @classmethod
-    def __w12(cls, f, s):
-        f.write(' ' * 12 + s)
-
-    def __write_assignment(self, f, var, call, parts):
-        line = '{} = {}({})'.format(var, call, ', '.join(parts))
-        if len(line) + 8 <= MAX_LINE_LENGTH:
-            self.__w8(f, line + '\n')
-        else:
-            self.__write_call(f, '{} = {}'.format(var, call), parts)
-
-    def __write_call(self, f, call, parts):
-        line = '{}({})'.format(call, ', '.join(parts))
-        if len(line) + 8 <= MAX_LINE_LENGTH:
-            self.__w8(f, line + '\n')
-            return
-        # the qualified state names are long, so the arguments go one per line
-        self.__w8(f, '{}(\n'.format(call))
-        for i, part in enumerate(parts):
-            tail = ',' if i + 1 < len(parts) else ')'
-            self.__w12(f, part + tail + '\n')
 
     def __insert_template(self, f, template, filename):
         if template not in self.__template_handlers:
@@ -566,239 +521,180 @@ class CodeGenerator:
             common = candidate
         return '{}_TO_{}_{}'.format(source_name, target_name[len(common):], event_name)
 
-    def __write_entry_handler(self, f, state_name, entry, behavior):
-        handler_name = 'on_st_{}_{}'.format(state_name, entry)
-        self.__w(f, '\n')
-        self.__w4(f, 'def {}(self, *_):\n'.format(handler_name))
-        # self.__w4(f, 'def {}(self, state, event):\n'.format(handler_name))
-        for line in behavior.split('\n'):
-            self.__w8(f, line.rstrip() + '\n')
-
-    def __write_entries_recursively(self, f, state):
-        for a in state.get_actions():
-            if a.get_type() == CyberiadaML.actionEntry:
-                self.__write_entry_handler(f, self.__get_state_name(state), 'enter', a.get_behavior())
-            elif a.get_type() == CyberiadaML.actionExit:
-                self.__write_entry_handler(f, self.__get_state_name(state), 'exit', a.get_behavior())
-        for ch in state.get_children():
-            if ch.get_type() in (CyberiadaML.elementSimpleState, CyberiadaML.elementCompositeState):
-                self.__write_entries_recursively(f, ch)
-
-    def __write_entries(self, f):
-        self.__w4(f, '# Entry & Exit Handlers:\n')
-        for ch in self.__graph.get_children():
-            if ch.get_type() in (CyberiadaML.elementSimpleState, CyberiadaML.elementCompositeState):
-                self.__write_entries_recursively(f, ch)
+    @classmethod
+    def __unique(cls, names, name):
+        # the second handler of the same name gets the suffix _2 and so on
+        names[name] = names.get(name, 0) + 1
+        return name if names[name] == 1 else '{}_{}'.format(name, names[name])
 
     @classmethod
-    def __write_guard_handler(cls, f, trigger_name, condition, argument):
-        handler_name = "is_{}".format(trigger_name)
-        cls.__w(f, '\n')
-        # pysm calls the handlers with (state, event), so both have to be named here:
-        # a trigger carrying an argument reads it from the event below
-        cls.__w4(f, "def {}(self, state, event):\n".format(handler_name))
+    def __pseudostate_id(cls, parent_name, kind, number=1):
+        # the pseudostates of the machine are named by their kind, of a composite after it
+        ident = kind if parent_name is None else '{}.{}'.format(parent_name, kind)
+        return ident if number == 1 else '{}_{}'.format(ident, number)
+
+    def __function(self, name, code, argument=None, guard=False):
+        # a piece of the diagram code as a function of the module: hsmd calls it without
+        # arguments in the module globals, the event it processes is the global event
+        lines = ['', '', 'def {}():'.format(name)]
         if argument:
-            cls.__w8(f, '{} = event.cargo["value"]\n'.format(argument))
-        cls.__w8(f, 'return ({})\n'.format(condition))
+            lines.append(' ' * 4 + '{} = event.value'.format(argument))
+        if guard:
+            lines.append(' ' * 4 + 'return ({})'.format(code.strip()))
+        else:
+            lines += [(' ' * 4 + line).rstrip() for line in code.rstrip().split('\n')]
+        self.__functions += lines
+        return name
+
+    def __reaction_args(self, action, trigger_name, argument):
+        args = []
+        if action.has_guard():
+            args.append('guard=' + self.__function('is_' + trigger_name, action.get_guard(), argument, True))
+        if action.has_behavior():
+            args.append('action=' + self.__function('on_' + trigger_name, action.get_behavior(), argument))
+        return args
 
     @classmethod
-    def __write_trigger_action(cls, f, trigger_name, behavior, argument):
-        handler_name = "on_{}".format(trigger_name)
-        cls.__w(f, '\n')
-        # see __write_guard_handler: the (state, event) signature is what pysm calls
-        cls.__w4(f, 'def {}(self, state, event):\n'.format(handler_name))
-        if argument:
-            cls.__w8(f, '{} = event.cargo["value"]\n'.format(argument))
-        for line in behavior.split('\n'):
-            cls.__w8(f, line.rstrip() + '\n')
+    def __call_lines(cls, indent, call, args, end):
+        # call(args)end on one line, or the arguments one per line
+        line = '{}{}({}){}'.format(indent, call, ', '.join(args), end)
+        if len(line) <= MAX_LINE_LENGTH or len(args) < 2:
+            return [line]
+        lines = [indent + call + '(']
+        for i, arg in enumerate(args):
+            lines.append(indent + ' ' * 4 + arg + (',' if i + 1 < len(args) else ')' + end))
+        return lines
 
-    def __write_guards_recursively(self, f, state):
-        handlers = {}
-        # internal triggers
+    @classmethod
+    def __nested_lines(cls, indent, call, args, groups, end):
+        # a declaration with the lists of the nested declarations, one item a line:
+        # call(args, key=[ items ], key=[ items ])end; a group is (key, items(indent))
+        if not groups:
+            return cls.__call_lines(indent, call, args, end)
+        first = indent + call + '(' + ', '.join(args) + ', ' + groups[0][0] + '=['
+        lines = []
+        if len(first) > MAX_LINE_LENGTH:
+            # the long head goes one argument per line, the items one level deeper
+            lines = [indent + call + '('] + [indent + ' ' * 4 + arg + ',' for arg in args]
+            for key, items in groups:
+                lines.append(indent + ' ' * 4 + key + '=[')
+                lines += items(indent + ' ' * 8)
+                lines.append(indent + ' ' * 4 + '],')
+            lines[-1] = indent + ' ' * 4 + '])' + end
+            return lines
+        for i, (key, items) in enumerate(groups):
+            head = indent + call + '(' + ', '.join(args) + ', ' if i == 0 else indent + '], '
+            lines.append(head + key + '=[')
+            lines += items(indent + ' ' * 4)
+        return lines + [indent + '])' + end]
+
+    def __vertex_id(self, element):
+        if element.get_type() == CyberiadaML.elementFinal:
+            return self.__final_ids[element.get_id()]
+        return self.__get_state_name(element)
+
+    def __initial_lines(self, parent, parent_name, indent):
+        # one initial pseudostate in every machine and composite: the one of the diagram
+        # or, when it has none, the one leading to its first state
+        ident = self.__pseudostate_id(parent_name, 'initial')
+        if parent_name is None:
+            target, behavior = self.__initial, self.__initial_behavior
+        else:
+            target = self.__graph.find_element_by_id(self.__initial_states[parent.get_id()])
+            behavior = None
+        args = [repr(ident), repr(self.__vertex_id(target))]
+        if behavior:
+            name = 'initial' if parent_name is None else '{}_initial'.format(parent_name)
+            args.append('action=' + self.__function('on_' + name, behavior))
+        self.__initial_transitions.append(args)
+        return [indent + 'hsmd.Initial(id={!r}),'.format(ident)]
+
+    def __children_lines(self, parent, parent_name, indent):
+        lines = self.__initial_lines(parent, parent_name, indent)
+        finals = 0
+        for ch in parent.get_children():
+            if ch.get_type() == CyberiadaML.elementFinal:
+                finals += 1
+                ident = self.__pseudostate_id(parent_name, 'final', finals)
+                self.__final_ids[ch.get_id()] = ident
+                lines.append(indent + 'hsmd.Final(id={!r}),'.format(ident))
+        for ch in parent.get_children():
+            if ch.get_type() in (CyberiadaML.elementSimpleState, CyberiadaML.elementCompositeState):
+                lines += self.__state_lines(ch, indent)
+        return lines
+
+    def __state_lines(self, state, indent):
+        state_name = self.__get_state_name(state)
+        args = [repr(state.get_name())]
+        if state_name != state.get_name():
+            args.append('id={!r}'.format(state_name))
+        names = {}
+        internal = []
+        for kind, entry in ((CyberiadaML.actionEntry, 'enter'), (CyberiadaML.actionExit, 'exit')):
+            handlers = [self.__function(self.__unique(names, 'on_st_{}_{}'.format(state_name, entry)),
+                                        a.get_behavior())
+                        for a in state.get_actions() if a.get_type() == kind]
+            if handlers:
+                key = 'entry' if entry == 'enter' else 'exit'
+                args.append('{}={}'.format(key, handlers[0] if len(handlers) == 1 else
+                                           '[' + ', '.join(handlers) + ']'))
         for a in state.get_actions():
             if a.get_type() == CyberiadaML.actionTransition:
                 name, argument = self.__parse_trigger(a.get_trigger())
-                trigger_name = '{}_{}'.format(self.__get_state_name(state), name)
-                if trigger_name not in handlers:
-                    handlers[trigger_name] = 1
-                else:
-                    handlers[trigger_name] += 1
-                    trigger_name += '_{}'.format(handlers[trigger_name])
-                if a.has_guard():
-                    self.__write_guard_handler(f, trigger_name, a.get_guard(), argument)
-                if a.has_behavior():
-                    self.__write_trigger_action(f, trigger_name, a.get_behavior(), argument)
+                trigger_name = self.__unique(names, '{}_{}'.format(state_name, name))
+                internal.append([repr(name)] + self.__reaction_args(a, trigger_name, argument))
+        groups = []
+        if internal:
+            groups.append(('internal', lambda i: [line for on in internal
+                                                  for line in self.__call_lines(i, 'hsmd.On', on, ',')]))
+        if state.get_type() == CyberiadaML.elementCompositeState:
+            groups.append(('states', lambda i: self.__children_lines(state, state_name, i)))
+        return self.__nested_lines(indent, 'hsmd.State', args, groups, ',')
 
-        # external triggers
+    def __transition_lines(self, indent):
+        # the transitions of the initial pseudostates are collected with the states
+        lines = [line for args in self.__initial_transitions
+                 for line in self.__call_lines(indent, 'hsmd.Transition', args, ',')]
+        names = {}
         for t in self.__transitions:
-            if t.get_source_element_id() != state.get_id():
-                continue
+            source_name = self.__get_state_name(self.__graph.find_element_by_id(t.get_source_element_id()))
             target = self.__graph.find_element_by_id(t.get_target_element_id())
-            if target.get_type() == CyberiadaML.elementFinal:
-                target_name = 'terminate'
-            else:
-                target_name = self.__get_state_name(target)
+            target_name = 'terminate' if target.get_type() == CyberiadaML.elementFinal else \
+                self.__get_state_name(target)
             a = t.get_action()
             if a.has_trigger():
                 name, argument = self.__parse_trigger(a.get_trigger())
             else:
+                # an allowed transition without a trigger waits for the next tick
                 name, argument = HSM_TICK_EVENT, None
-            trigger_name = self.__transition_name(self.__get_state_name(state),
-                                                  target_name, name)
-            if trigger_name not in handlers:
-                handlers[trigger_name] = 1
-            else:
-                handlers[trigger_name] += 1
-                trigger_name += '_{}'.format(handlers[trigger_name])
-            if a.has_guard():
-                self.__write_guard_handler(f, trigger_name, a.get_guard(), argument)
-            if a.has_behavior():
-                self.__write_trigger_action(f, trigger_name, a.get_behavior(), argument)
+            trigger_name = self.__unique(names, self.__transition_name(source_name, target_name, name))
+            args = [repr(source_name), repr(self.__vertex_id(target)), repr(name)]
+            args += self.__reaction_args(a, trigger_name, argument)
+            lines += self.__call_lines(indent, 'hsmd.Transition', args, ',')
+        return lines
 
-        for ch in state.get_children():
-            if ch.get_type() in (CyberiadaML.elementSimpleState, CyberiadaML.elementCompositeState):
-                self.__write_guards_recursively(f, ch)
-
-    def __write_guards(self, f):
-        self.__w(f, '\n')
-        self.__w4(f, "# Transition Conditions and Actions:\n")
-        if self.__initial_behavior:
-            self.__write_trigger_action(f, "initial", self.__initial_behavior, None)
-        for ch in self.__graph.get_children():
-            if ch.get_type() in (CyberiadaML.elementSimpleState, CyberiadaML.elementCompositeState):
-                self.__write_guards_recursively(f, ch)
-        self.__w(f, '\n')
-
-    def __write_handlers(self, f, state_name):
-        if state_name not in self.__handlers:
+    def __build_machine(self):
+        # the functions of the diagram code and the hsmd declaration of the machine
+        if self.__machine is not None:
             return
-        items = list(self.__handlers[state_name].items())
-        self.__w8(f, 'st_{}.handlers = '.format(state_name) + '{\n')
-        for i, (event, handler) in enumerate(items):
-            tail = ',' if i + 1 < len(items) else '}'
-            self.__w12(f, '"{}": {}{}\n'.format(event, handler, tail))
+        self.__functions = []
+        self.__initial_transitions = []
+        self.__final_ids = {}
+        # the states go first: they name the pseudostates the transitions refer to
+        self.__machine = self.__nested_lines('', 'machine = hsmd.Machine', [repr(self.__sm_name)],
+                                             [('states', lambda i: self.__children_lines(self.__graph, None, i)),
+                                              ('transitions', self.__transition_lines)], '')
 
-    def __write_states(self, f):
-        self.__w8(f, '# Hierarchical States:\n')
-        self.__w8(f, 'st_initial = pysm.State("initial")\n')
-        self.__w8(f, 'self.__sm.add_state(st_initial, initial=True)\n')
-        if self.__final_states:
-            self.__w8(f, 'st_terminate = pysm.State("terminate")\n')
-            self.__w8(f, 'self.__sm.add_state(st_terminate)\n')
-            self.__w8(f, 'st_terminate.handlers = {"enter": self.terminate}\n')
-        for ch in self.__graph.get_children():
-            if ch.get_type() in (CyberiadaML.elementSimpleState, CyberiadaML.elementCompositeState):
-                # the initial state of the state machine itself is st_initial, which the
-                # INIT transition leaves for the state the initial pseudostate points at:
-                # marking that state as initial as well is rejected by pysm
-                self.__write_states_recursively(f, ch, 'self.__sm', False)
+    def __write_functions(self, f):
+        self.__build_machine()
+        for line in self.__functions:
+            self.__w(f, line + '\n')
 
-    def __write_states_recursively(self, f, state, parent_var, initial):
-        state_name = self.__get_state_name(state)
-        state_var = 'st_{}'.format(state_name)
-        if state.get_type() == CyberiadaML.elementCompositeState:
-            sm_class = "StateMachine"
-        else:
-            sm_class = "State"
-        self.__write_assignment(f, state_var, 'pysm.{}'.format(sm_class),
-                                ['"{}"'.format(state_name)])
-        parts = [state_var]
-        if initial:
-            parts.append('initial=True')
-        self.__write_call(f, '{}.add_state'.format(parent_var), parts)
-        self.__write_handlers(f, state_name)
-        if state.get_type() == CyberiadaML.elementCompositeState:
-            initial_id = self.__initial_states[state.get_id()]
-            for ch in state.get_children():
-                if ch.get_type() in (CyberiadaML.elementSimpleState, CyberiadaML.elementCompositeState):
-                    self.__write_states_recursively(f, ch, state_var, ch.get_id() == initial_id)
-
-    def __write_events(self, f):
-        self.__w8(f, '# Events:\n\n')
-        self.__w8(f, 'InitEvent = pysm.Event("{}")\n'.format(INIT_EVENT))
-        for s, v in self.__sm_signals.items():
-            self.__w8(f, '{} = "{}"\n'.format(v, s))
-            self.__w8(f, '{ev}Event = pysm.Event({ev})\n'.format(ev=v))
-        entries = ['"{}": InitEvent'.format(INIT_EVENT)]
-        entries += ['"{}": {}Event'.format(s, v) for s, v in self.__sm_signals.items()]
-        self.__w8(f, 'self.__events = {\n')
-        for i, entry in enumerate(entries):
-            tail = ',' if i + 1 < len(entries) else '}'
-            self.__w12(f, entry + tail + '\n')
-
-    def __write_transitions(self, f):
-        self.__w8(f, '# Internal transitions:\n')
-        for state in self.__local_transitions:
-            handlers = {}
-            for a in state.get_actions():
-                if a.get_type() == CyberiadaML.actionTransition:
-                    state_name = self.__get_state_name(state)
-                    name, _ = self.__parse_trigger(a.get_trigger())
-                    trigger_name = '{}_{}'.format(state_name, name)
-                    if trigger_name not in handlers:
-                        handlers[trigger_name] = 1
-                    else:
-                        handlers[trigger_name] += 1
-                        trigger_name += '_{}'.format(handlers[trigger_name])
-                    parts = ['st_{}'.format(self.__get_state_name(state)),
-                             'None',
-                             'events=[{}]'.format(self.__sm_signals[name])]
-                    if a.has_guard():
-                        parts.append('condition=self.is_{}'.format(trigger_name))
-                    if a.has_behavior():
-                        parts.append('action=self.on_{}'.format(trigger_name))
-                    parent = state.get_parent()
-                    if parent.get_type() == CyberiadaML.elementSM:
-                        owner = 'self.__sm'
-                    else:
-                        owner = 'st_{}'.format(self.__get_state_name(parent))
-                    self.__write_call(f, '{}.add_transition'.format(owner), parts)
-
-        self.__w(f, '\n')
-        self.__w8(f, '# External transitions:\n')
-        parts = ['st_initial',
-                 'st_{}'.format(self.__get_state_name(self.__initial)),
-                 'events=["{}"]'.format(INIT_EVENT)]
-        if self.__initial_behavior:
-            parts.append('action=self.on_initial')
-        self.__write_call(f, 'self.__sm.add_transition', parts)
-
-        # external triggers
-        handlers = {}
-        for t in self.__transitions:
-            source = self.__graph.find_element_by_id(t.get_source_element_id())
-            source_name = self.__get_state_name(source)
-            if source_name not in handlers:
-                handlers[source_name] = {}
-            target = self.__graph.find_element_by_id(t.get_target_element_id())
-            if target.get_type() == CyberiadaML.elementFinal:
-                target_name = 'terminate'
-            else:
-                target_name = self.__get_state_name(target)
-            a = t.get_action()
-            if a.has_trigger():
-                name, _ = self.__parse_trigger(a.get_trigger())
-            else:
-                name, _ = HSM_TICK_EVENT, None
-            trigger_name = self.__transition_name(source_name, target_name, name)
-            if trigger_name not in handlers:
-                handlers[trigger_name] = 1
-            else:
-                handlers[trigger_name] += 1
-                trigger_name += '_{}'.format(handlers[trigger_name])
-            parts = ['st_{}'.format(source_name),
-                     'st_{}'.format(target_name),
-                     'events=[{}]'.format(self.__sm_signals[name])]
-            if a.has_guard():
-                parts.append('condition=self.is_{}'.format(trigger_name))
-            if a.has_behavior():
-                parts.append('action=self.on_{}'.format(trigger_name))
-            parent = source.get_parent()
-            if parent.get_type() == CyberiadaML.elementSM:
-                owner = 'self.__sm'
-            else:
-                owner = 'st_{}'.format(self.__get_state_name(parent))
-            self.__write_call(f, '{}.add_transition'.format(owner), parts)
+    def __write_machine(self, f):
+        self.__build_machine()
+        self.__w(f, '\n\n')
+        for line in self.__machine:
+            self.__w(f, line + '\n')
 
     def __write_library(self):
         # the generated controller imports the runtime library as hsm_controller.*, so the

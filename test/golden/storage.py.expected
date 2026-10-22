@@ -13,7 +13,7 @@
 
 import rclpy
 from rclpy.executors import ExternalShutdownException
-import pysm
+import hsmd
 import hsm_controller.base_hsm_controller
 import hsm_controller.debug_caller
 import hsm_controller.storage_caller
@@ -22,6 +22,43 @@ import hsm_controller.timer_caller
 Debug = None
 Storage = None
 Timer = None
+# the event being processed, set by the dispatcher
+event = None
+
+
+def on_st_load_enter():
+    Storage.load('path')
+    Timer.start(1)
+
+
+def on_st_read_enter():
+    pnt = Storage.next('path')
+    Debug.println(str(pnt))
+
+
+def on_st_done_enter():
+    Debug.println('done')
+
+
+def is_read_TO_read_TIMER_TICK():
+    return (Storage.has_data('path'))
+
+
+def is_read_TO_done_TIMER_TICK():
+    return (not Storage.has_data('path'))
+
+
+machine = hsmd.Machine('storage_reader', states=[
+    hsmd.Initial(id='initial'),
+    hsmd.State('load', entry=on_st_load_enter),
+    hsmd.State('read', entry=on_st_read_enter),
+    hsmd.State('done', entry=on_st_done_enter),
+], transitions=[
+    hsmd.Transition('initial', 'load'),
+    hsmd.Transition('load', 'read', 'TIMER_ELAPSED'),
+    hsmd.Transition('read', 'read', 'TIMER_TICK', guard=is_read_TO_read_TIMER_TICK),
+    hsmd.Transition('read', 'done', 'TIMER_TICK', guard=is_read_TO_done_TIMER_TICK),
+])
 
 
 class Storage_reader_HSMController(hsm_controller.base_hsm_controller.BaseHSMController):
@@ -29,7 +66,8 @@ class Storage_reader_HSMController(hsm_controller.base_hsm_controller.BaseHSMCon
     OBJECT_NAME = 'storage_reader_hsm_controller'
 
     def __init__(self):
-        self.__events = {}
+        # the base controller may process the messages while it waits for the services
+        self.__dispatcher = None
         hsm_controller.base_hsm_controller.BaseHSMController.__init__(
             self,
             self.OBJECT_NAME,
@@ -44,70 +82,28 @@ class Storage_reader_HSMController(hsm_controller.base_hsm_controller.BaseHSMCon
         global Timer
         Timer = hsm_controller.timer_caller.Timer
 
-        self.__sm = pysm.StateMachine("storage_reader")
-        # Events:
-
-        InitEvent = pysm.Event("INIT")
-        Timer_elapsed = "TIMER_ELAPSED"
-        Timer_elapsedEvent = pysm.Event(Timer_elapsed)
-        Timer_tick = "TIMER_TICK"
-        Timer_tickEvent = pysm.Event(Timer_tick)
-        self.__events = {
-            "INIT": InitEvent,
-            "TIMER_ELAPSED": Timer_elapsedEvent,
-            "TIMER_TICK": Timer_tickEvent}
-        # Hierarchical States:
-        st_initial = pysm.State("initial")
-        self.__sm.add_state(st_initial, initial=True)
-        st_load = pysm.State("load")
-        self.__sm.add_state(st_load)
-        st_load.handlers = {
-            "enter": self.on_st_load_enter}
-        st_read = pysm.State("read")
-        self.__sm.add_state(st_read)
-        st_read.handlers = {
-            "enter": self.on_st_read_enter}
-        st_done = pysm.State("done")
-        self.__sm.add_state(st_done)
-        st_done.handlers = {
-            "enter": self.on_st_done_enter}
-        # Internal transitions:
-
-        # External transitions:
-        self.__sm.add_transition(st_initial, st_load, events=["INIT"])
-        self.__sm.add_transition(st_load, st_read, events=[Timer_elapsed])
-        self.__sm.add_transition(st_read, st_read, events=[Timer_tick], condition=self.is_read_TO_read_TIMER_TICK)
-        self.__sm.add_transition(st_read, st_done, events=[Timer_tick], condition=self.is_read_TO_done_TIMER_TICK)
-        self.__sm.initialize()
-        self.__sm.dispatch(InitEvent)
-    # Entry & Exit Handlers:
-
-    def on_st_load_enter(self, *_):
-        Storage.load('path')
-        Timer.start(1)
-
-    def on_st_read_enter(self, *_):
-        pnt = Storage.next('path')
-        Debug.println(str(pnt))
-
-    def on_st_done_enter(self, *_):
-        Debug.println('done')
-
-    # Transition Conditions and Actions:
-
-    def is_read_TO_read_TIMER_TICK(self, state, event):
-        return (Storage.has_data('path'))
-
-    def is_read_TO_done_TIMER_TICK(self, state, event):
-        return (not Storage.has_data('path'))
+        dispatcher = hsmd.Dispatcher(machine, namespace=globals())
+        self.__run(dispatcher, dispatcher.start)
+        self.__dispatcher = dispatcher
 
     def dispatch_event(self, eventstr, arg):
-        if eventstr is not None and eventstr in self.__events:
-            if arg is None:
-                self.__sm.dispatch(pysm.Event(eventstr))
-            else:
-                args = {"value": arg}
-                self.__sm.dispatch(pysm.Event(eventstr, **args))
+        if eventstr is None or self.__dispatcher is None:
+            return
+        if arg is None:
+            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr)
+        else:
+            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr, value=arg)
+
+    def __run(self, dispatcher, step, *args, **parameters):
+        # an error of the diagram code stops the dispatcher, and so the controller
+        try:
+            step(*args, **parameters)
+        except hsmd.DispatcherError as e:
+            self.get_logger().error('The state machine is stopped: {}'.format(e))
+            self.terminate()
+            return
+        if dispatcher.finished():
+            self.terminate()
 
 
 def main(args=None):

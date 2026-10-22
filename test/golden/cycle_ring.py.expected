@@ -13,13 +13,40 @@
 
 import rclpy
 from rclpy.executors import ExternalShutdownException
-import pysm
+import hsmd
 import hsm_controller.base_hsm_controller
 import hsm_controller.debug_caller
 import hsm_controller.timer_caller
 
 Debug = None
 Timer = None
+# the event being processed, set by the dispatcher
+event = None
+
+
+def on_st_one_enter():
+    Debug.println('one')
+
+
+def on_st_two_enter():
+    Debug.println('two')
+
+
+def on_st_three_enter():
+    Debug.println('three')
+
+
+machine = hsmd.Machine('cycle_ring', states=[
+    hsmd.Initial(id='initial'),
+    hsmd.State('one', entry=on_st_one_enter),
+    hsmd.State('two', entry=on_st_two_enter),
+    hsmd.State('three', entry=on_st_three_enter),
+], transitions=[
+    hsmd.Transition('initial', 'one'),
+    hsmd.Transition('one', 'two', 'TIMER_TICK'),
+    hsmd.Transition('two', 'three', 'TIMER_TICK'),
+    hsmd.Transition('three', 'one', 'TIMER_TICK'),
+])
 
 
 class Cycle_ring_HSMController(hsm_controller.base_hsm_controller.BaseHSMController):
@@ -27,7 +54,8 @@ class Cycle_ring_HSMController(hsm_controller.base_hsm_controller.BaseHSMControl
     OBJECT_NAME = 'cycle_ring_hsm_controller'
 
     def __init__(self):
-        self.__events = {}
+        # the base controller may process the messages while it waits for the services
+        self.__dispatcher = None
         hsm_controller.base_hsm_controller.BaseHSMController.__init__(
             self,
             self.OBJECT_NAME,
@@ -40,59 +68,28 @@ class Cycle_ring_HSMController(hsm_controller.base_hsm_controller.BaseHSMControl
         global Timer
         Timer = hsm_controller.timer_caller.Timer
 
-        self.__sm = pysm.StateMachine("cycle_ring")
-        # Events:
-
-        InitEvent = pysm.Event("INIT")
-        Timer_tick = "TIMER_TICK"
-        Timer_tickEvent = pysm.Event(Timer_tick)
-        self.__events = {
-            "INIT": InitEvent,
-            "TIMER_TICK": Timer_tickEvent}
-        # Hierarchical States:
-        st_initial = pysm.State("initial")
-        self.__sm.add_state(st_initial, initial=True)
-        st_one = pysm.State("one")
-        self.__sm.add_state(st_one)
-        st_one.handlers = {
-            "enter": self.on_st_one_enter}
-        st_two = pysm.State("two")
-        self.__sm.add_state(st_two)
-        st_two.handlers = {
-            "enter": self.on_st_two_enter}
-        st_three = pysm.State("three")
-        self.__sm.add_state(st_three)
-        st_three.handlers = {
-            "enter": self.on_st_three_enter}
-        # Internal transitions:
-
-        # External transitions:
-        self.__sm.add_transition(st_initial, st_one, events=["INIT"])
-        self.__sm.add_transition(st_one, st_two, events=[Timer_tick])
-        self.__sm.add_transition(st_two, st_three, events=[Timer_tick])
-        self.__sm.add_transition(st_three, st_one, events=[Timer_tick])
-        self.__sm.initialize()
-        self.__sm.dispatch(InitEvent)
-    # Entry & Exit Handlers:
-
-    def on_st_one_enter(self, *_):
-        Debug.println('one')
-
-    def on_st_two_enter(self, *_):
-        Debug.println('two')
-
-    def on_st_three_enter(self, *_):
-        Debug.println('three')
-
-    # Transition Conditions and Actions:
+        dispatcher = hsmd.Dispatcher(machine, namespace=globals())
+        self.__run(dispatcher, dispatcher.start)
+        self.__dispatcher = dispatcher
 
     def dispatch_event(self, eventstr, arg):
-        if eventstr is not None and eventstr in self.__events:
-            if arg is None:
-                self.__sm.dispatch(pysm.Event(eventstr))
-            else:
-                args = {"value": arg}
-                self.__sm.dispatch(pysm.Event(eventstr, **args))
+        if eventstr is None or self.__dispatcher is None:
+            return
+        if arg is None:
+            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr)
+        else:
+            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr, value=arg)
+
+    def __run(self, dispatcher, step, *args, **parameters):
+        # an error of the diagram code stops the dispatcher, and so the controller
+        try:
+            step(*args, **parameters)
+        except hsmd.DispatcherError as e:
+            self.get_logger().error('The state machine is stopped: {}'.format(e))
+            self.terminate()
+            return
+        if dispatcher.finished():
+            self.terminate()
 
 
 def main(args=None):

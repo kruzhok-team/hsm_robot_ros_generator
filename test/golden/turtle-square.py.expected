@@ -13,7 +13,7 @@
 
 import rclpy
 from rclpy.executors import ExternalShutdownException
-import pysm
+import hsmd
 import hsm_controller.base_hsm_controller
 import hsm_controller.debug_caller
 import hsm_controller.navigation_caller
@@ -22,6 +22,69 @@ import hsm_controller.wheels_caller
 Debug = None
 Navigation = None
 Wheels = None
+# the event being processed, set by the dispatcher
+event = None
+
+
+def on_st_turtle_square_four_corners_top_left_enter():
+    Navigation.move_to_point(2, 7)
+    Debug.println('go to top-left')
+
+
+def on_st_turtle_square_four_corners_top_right_enter():
+    Navigation.move_to_point(7, 7)
+    Debug.println('go to top-right')
+
+
+def on_st_turtle_square_four_corners_bottom_right_enter():
+    Navigation.move_to_point(7, 2)
+    Debug.println('go to bottom-right')
+
+
+def on_st_turtle_square_four_corners_bottom_left_enter():
+    Navigation.move_to_point(2, 2)
+    Debug.println('go to bottom-left')
+
+
+machine = hsmd.Machine('turtle_square', states=[
+    hsmd.Initial(id='initial'),
+    hsmd.State('turtle_square', states=[
+        hsmd.Initial(id='turtle_square.initial'),
+        hsmd.State('four_corners', id='turtle_square_four_corners', states=[
+            hsmd.Initial(id='turtle_square_four_corners.initial'),
+            hsmd.State(
+                'top-left',
+                id='turtle_square_four_corners_top_left',
+                entry=on_st_turtle_square_four_corners_top_left_enter),
+            hsmd.State(
+                'top-right',
+                id='turtle_square_four_corners_top_right',
+                entry=on_st_turtle_square_four_corners_top_right_enter),
+            hsmd.State(
+                'bottom-right',
+                id='turtle_square_four_corners_bottom_right',
+                entry=on_st_turtle_square_four_corners_bottom_right_enter),
+            hsmd.State(
+                'bottom-left',
+                id='turtle_square_four_corners_bottom_left',
+                entry=on_st_turtle_square_four_corners_bottom_left_enter),
+        ]),
+    ]),
+], transitions=[
+    hsmd.Transition('initial', 'turtle_square_four_corners_top_left'),
+    hsmd.Transition('turtle_square.initial', 'turtle_square_four_corners'),
+    hsmd.Transition('turtle_square_four_corners.initial', 'turtle_square_four_corners_top_left'),
+    hsmd.Transition('turtle_square_four_corners_top_left', 'turtle_square_four_corners_top_right', 'MOVE_COMPLETED'),
+    hsmd.Transition(
+        'turtle_square_four_corners_top_right',
+        'turtle_square_four_corners_bottom_right',
+        'MOVE_COMPLETED'),
+    hsmd.Transition(
+        'turtle_square_four_corners_bottom_right',
+        'turtle_square_four_corners_bottom_left',
+        'MOVE_COMPLETED'),
+    hsmd.Transition('turtle_square_four_corners_bottom_left', 'turtle_square_four_corners_top_left', 'MOVE_COMPLETED'),
+])
 
 
 class Turtle_square_HSMController(hsm_controller.base_hsm_controller.BaseHSMController):
@@ -29,7 +92,8 @@ class Turtle_square_HSMController(hsm_controller.base_hsm_controller.BaseHSMCont
     OBJECT_NAME = 'turtle_square_hsm_controller'
 
     def __init__(self):
-        self.__events = {}
+        # the base controller may process the messages while it waits for the services
+        self.__dispatcher = None
         hsm_controller.base_hsm_controller.BaseHSMController.__init__(
             self,
             self.OBJECT_NAME,
@@ -44,87 +108,28 @@ class Turtle_square_HSMController(hsm_controller.base_hsm_controller.BaseHSMCont
         global Wheels
         Wheels = hsm_controller.wheels_caller.Wheels
 
-        self.__sm = pysm.StateMachine("turtle_square")
-        # Events:
-
-        InitEvent = pysm.Event("INIT")
-        Move_completed = "MOVE_COMPLETED"
-        Move_completedEvent = pysm.Event(Move_completed)
-        self.__events = {
-            "INIT": InitEvent,
-            "MOVE_COMPLETED": Move_completedEvent}
-        # Hierarchical States:
-        st_initial = pysm.State("initial")
-        self.__sm.add_state(st_initial, initial=True)
-        st_turtle_square = pysm.StateMachine("turtle_square")
-        self.__sm.add_state(st_turtle_square)
-        st_turtle_square_four_corners = pysm.StateMachine("turtle_square_four_corners")
-        st_turtle_square.add_state(st_turtle_square_four_corners, initial=True)
-        st_turtle_square_four_corners_top_left = pysm.State("turtle_square_four_corners_top_left")
-        st_turtle_square_four_corners.add_state(st_turtle_square_four_corners_top_left, initial=True)
-        st_turtle_square_four_corners_top_left.handlers = {
-            "enter": self.on_st_turtle_square_four_corners_top_left_enter}
-        st_turtle_square_four_corners_top_right = pysm.State("turtle_square_four_corners_top_right")
-        st_turtle_square_four_corners.add_state(st_turtle_square_four_corners_top_right)
-        st_turtle_square_four_corners_top_right.handlers = {
-            "enter": self.on_st_turtle_square_four_corners_top_right_enter}
-        st_turtle_square_four_corners_bottom_right = pysm.State("turtle_square_four_corners_bottom_right")
-        st_turtle_square_four_corners.add_state(st_turtle_square_four_corners_bottom_right)
-        st_turtle_square_four_corners_bottom_right.handlers = {
-            "enter": self.on_st_turtle_square_four_corners_bottom_right_enter}
-        st_turtle_square_four_corners_bottom_left = pysm.State("turtle_square_four_corners_bottom_left")
-        st_turtle_square_four_corners.add_state(st_turtle_square_four_corners_bottom_left)
-        st_turtle_square_four_corners_bottom_left.handlers = {
-            "enter": self.on_st_turtle_square_four_corners_bottom_left_enter}
-        # Internal transitions:
-
-        # External transitions:
-        self.__sm.add_transition(st_initial, st_turtle_square_four_corners_top_left, events=["INIT"])
-        st_turtle_square_four_corners.add_transition(
-            st_turtle_square_four_corners_top_left,
-            st_turtle_square_four_corners_top_right,
-            events=[Move_completed])
-        st_turtle_square_four_corners.add_transition(
-            st_turtle_square_four_corners_top_right,
-            st_turtle_square_four_corners_bottom_right,
-            events=[Move_completed])
-        st_turtle_square_four_corners.add_transition(
-            st_turtle_square_four_corners_bottom_right,
-            st_turtle_square_four_corners_bottom_left,
-            events=[Move_completed])
-        st_turtle_square_four_corners.add_transition(
-            st_turtle_square_four_corners_bottom_left,
-            st_turtle_square_four_corners_top_left,
-            events=[Move_completed])
-        self.__sm.initialize()
-        self.__sm.dispatch(InitEvent)
-    # Entry & Exit Handlers:
-
-    def on_st_turtle_square_four_corners_top_left_enter(self, *_):
-        Navigation.move_to_point(2, 7)
-        Debug.println('go to top-left')
-
-    def on_st_turtle_square_four_corners_top_right_enter(self, *_):
-        Navigation.move_to_point(7, 7)
-        Debug.println('go to top-right')
-
-    def on_st_turtle_square_four_corners_bottom_right_enter(self, *_):
-        Navigation.move_to_point(7, 2)
-        Debug.println('go to bottom-right')
-
-    def on_st_turtle_square_four_corners_bottom_left_enter(self, *_):
-        Navigation.move_to_point(2, 2)
-        Debug.println('go to bottom-left')
-
-    # Transition Conditions and Actions:
+        dispatcher = hsmd.Dispatcher(machine, namespace=globals())
+        self.__run(dispatcher, dispatcher.start)
+        self.__dispatcher = dispatcher
 
     def dispatch_event(self, eventstr, arg):
-        if eventstr is not None and eventstr in self.__events:
-            if arg is None:
-                self.__sm.dispatch(pysm.Event(eventstr))
-            else:
-                args = {"value": arg}
-                self.__sm.dispatch(pysm.Event(eventstr, **args))
+        if eventstr is None or self.__dispatcher is None:
+            return
+        if arg is None:
+            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr)
+        else:
+            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr, value=arg)
+
+    def __run(self, dispatcher, step, *args, **parameters):
+        # an error of the diagram code stops the dispatcher, and so the controller
+        try:
+            step(*args, **parameters)
+        except hsmd.DispatcherError as e:
+            self.get_logger().error('The state machine is stopped: {}'.format(e))
+            self.terminate()
+            return
+        if dispatcher.finished():
+            self.terminate()
 
 
 def main(args=None):

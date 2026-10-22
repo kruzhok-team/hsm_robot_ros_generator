@@ -13,7 +13,7 @@
 
 import rclpy
 from rclpy.executors import ExternalShutdownException
-import pysm
+import hsmd
 import math
 import hsm_controller.base_hsm_controller
 import hsm_controller.debug_caller
@@ -23,6 +23,61 @@ import hsm_controller.wheels_caller
 Debug = None
 Timer = None
 Wheels = None
+# the event being processed, set by the dispatcher
+event = None
+
+
+def on_st_turtle_square_wheels_go_by_square_turn_right_enter():
+    # PI/2 per 5 sec
+    Wheels.turn_right((math.pi/2)/5)
+    Timer.start(5.0)
+
+
+def on_st_turtle_square_wheels_go_by_square_turn_right_exit():
+    Wheels.stop()
+
+
+def on_st_turtle_square_wheels_go_by_square_go_ahead_enter():
+    # 1 meter per sec
+    Wheels.forward(1.0)
+    Timer.start(4.0)
+
+
+def on_st_turtle_square_wheels_go_by_square_go_ahead_exit():
+    Wheels.stop()
+
+
+machine = hsmd.Machine('turtle_square_wheels', states=[
+    hsmd.Initial(id='initial'),
+    hsmd.State('turtle_square_wheels', states=[
+        hsmd.Initial(id='turtle_square_wheels.initial'),
+        hsmd.State('go_by_square', id='turtle_square_wheels_go_by_square', states=[
+            hsmd.Initial(id='turtle_square_wheels_go_by_square.initial'),
+            hsmd.State(
+                'turn_right',
+                id='turtle_square_wheels_go_by_square_turn_right',
+                entry=on_st_turtle_square_wheels_go_by_square_turn_right_enter,
+                exit=on_st_turtle_square_wheels_go_by_square_turn_right_exit),
+            hsmd.State(
+                'go_ahead',
+                id='turtle_square_wheels_go_by_square_go_ahead',
+                entry=on_st_turtle_square_wheels_go_by_square_go_ahead_enter,
+                exit=on_st_turtle_square_wheels_go_by_square_go_ahead_exit),
+        ]),
+    ]),
+], transitions=[
+    hsmd.Transition('initial', 'turtle_square_wheels_go_by_square_turn_right'),
+    hsmd.Transition('turtle_square_wheels.initial', 'turtle_square_wheels_go_by_square'),
+    hsmd.Transition('turtle_square_wheels_go_by_square.initial', 'turtle_square_wheels_go_by_square_turn_right'),
+    hsmd.Transition(
+        'turtle_square_wheels_go_by_square_turn_right',
+        'turtle_square_wheels_go_by_square_go_ahead',
+        'TIMER_ELAPSED'),
+    hsmd.Transition(
+        'turtle_square_wheels_go_by_square_go_ahead',
+        'turtle_square_wheels_go_by_square_turn_right',
+        'TIMER_ELAPSED'),
+])
 
 
 class Turtle_square_wheels_HSMController(hsm_controller.base_hsm_controller.BaseHSMController):
@@ -30,7 +85,8 @@ class Turtle_square_wheels_HSMController(hsm_controller.base_hsm_controller.Base
     OBJECT_NAME = 'turtle_square_wheels_hsm_controller'
 
     def __init__(self):
-        self.__events = {}
+        # the base controller may process the messages while it waits for the services
+        self.__dispatcher = None
         hsm_controller.base_hsm_controller.BaseHSMController.__init__(
             self,
             self.OBJECT_NAME,
@@ -45,73 +101,28 @@ class Turtle_square_wheels_HSMController(hsm_controller.base_hsm_controller.Base
         global Wheels
         Wheels = hsm_controller.wheels_caller.Wheels
 
-        self.__sm = pysm.StateMachine("turtle_square_wheels")
-        # Events:
-
-        InitEvent = pysm.Event("INIT")
-        Timer_elapsed = "TIMER_ELAPSED"
-        Timer_elapsedEvent = pysm.Event(Timer_elapsed)
-        self.__events = {
-            "INIT": InitEvent,
-            "TIMER_ELAPSED": Timer_elapsedEvent}
-        # Hierarchical States:
-        st_initial = pysm.State("initial")
-        self.__sm.add_state(st_initial, initial=True)
-        st_turtle_square_wheels = pysm.StateMachine("turtle_square_wheels")
-        self.__sm.add_state(st_turtle_square_wheels)
-        st_turtle_square_wheels_go_by_square = pysm.StateMachine("turtle_square_wheels_go_by_square")
-        st_turtle_square_wheels.add_state(st_turtle_square_wheels_go_by_square, initial=True)
-        st_turtle_square_wheels_go_by_square_turn_right = pysm.State("turtle_square_wheels_go_by_square_turn_right")
-        st_turtle_square_wheels_go_by_square.add_state(st_turtle_square_wheels_go_by_square_turn_right, initial=True)
-        st_turtle_square_wheels_go_by_square_turn_right.handlers = {
-            "enter": self.on_st_turtle_square_wheels_go_by_square_turn_right_enter,
-            "exit": self.on_st_turtle_square_wheels_go_by_square_turn_right_exit}
-        st_turtle_square_wheels_go_by_square_go_ahead = pysm.State("turtle_square_wheels_go_by_square_go_ahead")
-        st_turtle_square_wheels_go_by_square.add_state(st_turtle_square_wheels_go_by_square_go_ahead)
-        st_turtle_square_wheels_go_by_square_go_ahead.handlers = {
-            "enter": self.on_st_turtle_square_wheels_go_by_square_go_ahead_enter,
-            "exit": self.on_st_turtle_square_wheels_go_by_square_go_ahead_exit}
-        # Internal transitions:
-
-        # External transitions:
-        self.__sm.add_transition(st_initial, st_turtle_square_wheels_go_by_square_turn_right, events=["INIT"])
-        st_turtle_square_wheels_go_by_square.add_transition(
-            st_turtle_square_wheels_go_by_square_turn_right,
-            st_turtle_square_wheels_go_by_square_go_ahead,
-            events=[Timer_elapsed])
-        st_turtle_square_wheels_go_by_square.add_transition(
-            st_turtle_square_wheels_go_by_square_go_ahead,
-            st_turtle_square_wheels_go_by_square_turn_right,
-            events=[Timer_elapsed])
-        self.__sm.initialize()
-        self.__sm.dispatch(InitEvent)
-    # Entry & Exit Handlers:
-
-    def on_st_turtle_square_wheels_go_by_square_turn_right_enter(self, *_):
-        # PI/2 per 5 sec
-        Wheels.turn_right((math.pi/2)/5)
-        Timer.start(5.0)
-
-    def on_st_turtle_square_wheels_go_by_square_turn_right_exit(self, *_):
-        Wheels.stop()
-
-    def on_st_turtle_square_wheels_go_by_square_go_ahead_enter(self, *_):
-        # 1 meter per sec
-        Wheels.forward(1.0)
-        Timer.start(4.0)
-
-    def on_st_turtle_square_wheels_go_by_square_go_ahead_exit(self, *_):
-        Wheels.stop()
-
-    # Transition Conditions and Actions:
+        dispatcher = hsmd.Dispatcher(machine, namespace=globals())
+        self.__run(dispatcher, dispatcher.start)
+        self.__dispatcher = dispatcher
 
     def dispatch_event(self, eventstr, arg):
-        if eventstr is not None and eventstr in self.__events:
-            if arg is None:
-                self.__sm.dispatch(pysm.Event(eventstr))
-            else:
-                args = {"value": arg}
-                self.__sm.dispatch(pysm.Event(eventstr, **args))
+        if eventstr is None or self.__dispatcher is None:
+            return
+        if arg is None:
+            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr)
+        else:
+            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr, value=arg)
+
+    def __run(self, dispatcher, step, *args, **parameters):
+        # an error of the diagram code stops the dispatcher, and so the controller
+        try:
+            step(*args, **parameters)
+        except hsmd.DispatcherError as e:
+            self.get_logger().error('The state machine is stopped: {}'.format(e))
+            self.terminate()
+            return
+        if dispatcher.finished():
+            self.terminate()
 
 
 def main(args=None):

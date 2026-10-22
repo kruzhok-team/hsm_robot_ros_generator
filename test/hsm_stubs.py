@@ -22,7 +22,7 @@
 
 # The diagrams are written against the robot API and not against ROS2, so the tests of
 # the generated code do not need ROS2 either. The modules the generated controller
-# imports are replaced by the stubs below, and the controller then runs on pysm alone:
+# imports are replaced by the stubs below, and the controller then runs on hsmd alone:
 # no node is created, no service is called and no topic is subscribed.
 
 import importlib
@@ -85,6 +85,21 @@ class FakeBaseHSMController:
     def terminate(self, *args):
         self.terminated = True
 
+    def get_logger(self):
+        return FakeLogger(self)
+
+
+class FakeLogger:
+    # keeps the messages the controller logs
+
+    def __init__(self, controller):
+        self.__controller = controller
+
+    def __getattr__(self, level):
+        def log(message):
+            self.__controller.logged = getattr(self.__controller, 'logged', []) + [(level, message)]
+        return log
+
 
 def install(package_dir):
     # replace rclpy and the controller runtime library by the stubs and return the
@@ -145,11 +160,11 @@ def load_controller(package_dir, module_name):
     return classes[0], recorder
 
 
-def state_machine(controller):
-    # the pysm state machine of a controller instance
-    return getattr(controller, '_{}__sm'.format(type(controller).__name__))
+def dispatcher(controller):
+    # the hsmd dispatcher of a controller instance
+    return getattr(controller, '_{}__dispatcher'.format(type(controller).__name__))
 
 
 def leaf_state(controller):
-    # the name of the innermost active state
-    return state_machine(controller).leaf_state.name
+    # the identifier of the innermost active state
+    return dispatcher(controller).states()[-1]

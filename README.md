@@ -26,6 +26,16 @@ it into the user plugin folder of the editor from a sourced workspace:
 
 The plugin is described in `docs/editor_plugin.md`.
 
+The generated controller declares the state machine as an `hsmd.Machine` and runs it on
+the Python HSM dispatcher `hsmd` (hsm-dispatcher-py); the events of the API modules are
+sent to the dispatcher, and the node is closed when the machine reaches its final state or
+an error of the diagram code stops the dispatcher:
+
+    graphml --gencode.py--> hsm_controller/<sm>.py: the diagram code functions
+                                                    machine = hsmd.Machine(...)
+                                                    <Sm>_HSMController(BaseHSMController)
+    ROS topics --> BaseHSMController --dispatch_event--> hsmd.Dispatcher.send(EVENT, value=arg)
+
 This repository is the `hsm_generator` ROS 2 package: the convertor (`gencode.py`,
 `hsm_generator.py`), the templates, and the controller runtime library of the
 `hsm_controller` directory the generated package is built upon. The generated package is a
@@ -42,7 +52,7 @@ package it writes is complete and builds, the generated code passes the linters,
 machine it builds behaves as the diagram says, and an invalid diagram is reported instead
 of being converted. The generated controller is driven with `rclpy` and the runtime library
 replaced by the stubs of `test/hsm_stubs.py`, so no ROS 2 node is created and no service is
-called.
+called. The behaviour tests need `hsmd` importable.
 
 The `test/golden` directory holds the reference output of every diagram. After an
 intended change of the conversion or of the templates, record it again and review the
@@ -62,6 +72,8 @@ https://github.com/kruzhok-team/hsm_robot_ros_tests.
 * ROS 2
 * ROS 2 HSM robot API - https://github.com/kruzhok-team/hsm-robot-ros-api
 * ROS 2 HSM robot API interfaces - https://github.com/kruzhok-team/hsm-robot-ros-interfaces
-* pysm: the Python implementation of the hierarchical state machines
+* hsm-dispatcher-py: the Python HSM dispatcher `hsmd`, needed where the generated controller
+  runs - https://github.com/kruzhok-team/hsm-dispatcher-py (its Debian package
+  `python3-hsm-dispatcher` or `pip install`)
 * Python binding for the CyberiadaML library - https://github.com/kruzhok-team/libcyberiadamlpp-py
 * Editor to draw CyberiadaML diagrams like yEd, https://github.com/kruzhok-team/lapki-client or https://github.com/dralex/CyberiadaHSM-Editor

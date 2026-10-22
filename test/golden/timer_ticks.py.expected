@@ -13,13 +13,40 @@
 
 import rclpy
 from rclpy.executors import ExternalShutdownException
-import pysm
+import hsmd
 import hsm_controller.base_hsm_controller
 import hsm_controller.debug_caller
 import hsm_controller.timer_caller
 
 Debug = None
 Timer = None
+# the event being processed, set by the dispatcher
+event = None
+
+
+def on_st_tick_enter():
+    Debug.println('tick')
+
+
+def on_st_second_enter():
+    Debug.println('second')
+
+
+def on_st_minute_enter():
+    Debug.println('minute')
+
+
+machine = hsmd.Machine('timer_ticks', states=[
+    hsmd.Initial(id='initial'),
+    hsmd.State('tick', entry=on_st_tick_enter),
+    hsmd.State('second', entry=on_st_second_enter),
+    hsmd.State('minute', entry=on_st_minute_enter),
+], transitions=[
+    hsmd.Transition('initial', 'tick'),
+    hsmd.Transition('tick', 'second', 'TIMER_TICK_1S'),
+    hsmd.Transition('second', 'minute', 'TIMER_TICK_1M'),
+    hsmd.Transition('minute', 'tick', 'TIMER_TICK'),
+])
 
 
 class Timer_ticks_HSMController(hsm_controller.base_hsm_controller.BaseHSMController):
@@ -27,7 +54,8 @@ class Timer_ticks_HSMController(hsm_controller.base_hsm_controller.BaseHSMContro
     OBJECT_NAME = 'timer_ticks_hsm_controller'
 
     def __init__(self):
-        self.__events = {}
+        # the base controller may process the messages while it waits for the services
+        self.__dispatcher = None
         hsm_controller.base_hsm_controller.BaseHSMController.__init__(
             self,
             self.OBJECT_NAME,
@@ -40,65 +68,28 @@ class Timer_ticks_HSMController(hsm_controller.base_hsm_controller.BaseHSMContro
         global Timer
         Timer = hsm_controller.timer_caller.Timer
 
-        self.__sm = pysm.StateMachine("timer_ticks")
-        # Events:
-
-        InitEvent = pysm.Event("INIT")
-        Timer_tick_1s = "TIMER_TICK_1S"
-        Timer_tick_1sEvent = pysm.Event(Timer_tick_1s)
-        Timer_tick_1m = "TIMER_TICK_1M"
-        Timer_tick_1mEvent = pysm.Event(Timer_tick_1m)
-        Timer_tick = "TIMER_TICK"
-        Timer_tickEvent = pysm.Event(Timer_tick)
-        self.__events = {
-            "INIT": InitEvent,
-            "TIMER_TICK_1S": Timer_tick_1sEvent,
-            "TIMER_TICK_1M": Timer_tick_1mEvent,
-            "TIMER_TICK": Timer_tickEvent}
-        # Hierarchical States:
-        st_initial = pysm.State("initial")
-        self.__sm.add_state(st_initial, initial=True)
-        st_tick = pysm.State("tick")
-        self.__sm.add_state(st_tick)
-        st_tick.handlers = {
-            "enter": self.on_st_tick_enter}
-        st_second = pysm.State("second")
-        self.__sm.add_state(st_second)
-        st_second.handlers = {
-            "enter": self.on_st_second_enter}
-        st_minute = pysm.State("minute")
-        self.__sm.add_state(st_minute)
-        st_minute.handlers = {
-            "enter": self.on_st_minute_enter}
-        # Internal transitions:
-
-        # External transitions:
-        self.__sm.add_transition(st_initial, st_tick, events=["INIT"])
-        self.__sm.add_transition(st_tick, st_second, events=[Timer_tick_1s])
-        self.__sm.add_transition(st_second, st_minute, events=[Timer_tick_1m])
-        self.__sm.add_transition(st_minute, st_tick, events=[Timer_tick])
-        self.__sm.initialize()
-        self.__sm.dispatch(InitEvent)
-    # Entry & Exit Handlers:
-
-    def on_st_tick_enter(self, *_):
-        Debug.println('tick')
-
-    def on_st_second_enter(self, *_):
-        Debug.println('second')
-
-    def on_st_minute_enter(self, *_):
-        Debug.println('minute')
-
-    # Transition Conditions and Actions:
+        dispatcher = hsmd.Dispatcher(machine, namespace=globals())
+        self.__run(dispatcher, dispatcher.start)
+        self.__dispatcher = dispatcher
 
     def dispatch_event(self, eventstr, arg):
-        if eventstr is not None and eventstr in self.__events:
-            if arg is None:
-                self.__sm.dispatch(pysm.Event(eventstr))
-            else:
-                args = {"value": arg}
-                self.__sm.dispatch(pysm.Event(eventstr, **args))
+        if eventstr is None or self.__dispatcher is None:
+            return
+        if arg is None:
+            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr)
+        else:
+            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr, value=arg)
+
+    def __run(self, dispatcher, step, *args, **parameters):
+        # an error of the diagram code stops the dispatcher, and so the controller
+        try:
+            step(*args, **parameters)
+        except hsmd.DispatcherError as e:
+            self.get_logger().error('The state machine is stopped: {}'.format(e))
+            self.terminate()
+            return
+        if dispatcher.finished():
+            self.terminate()
 
 
 def main(args=None):

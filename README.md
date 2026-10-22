@@ -36,6 +36,10 @@ an error of the diagram code stops the dispatcher:
                                                     <Sm>_HSMController(BaseHSMController)
     ROS topics --> BaseHSMController --dispatch_event--> hsmd.Dispatcher.send(EVENT, value=arg)
 
+The diagram declares its API modules, its package parameters and its test expectations in
+formal comments: `CGML_COMPONENT`, `CGML_META` and `ROS2 HSM Test`, see
+`docs/diagram_comments.md`.
+
 This repository is the `hsm_generator` ROS 2 package: the convertor (`gencode.py`,
 `hsm_generator.py`), the templates, and the controller runtime library of the
 `hsm_controller` directory the generated package is built upon. The generated package is a

@@ -18,23 +18,28 @@
       <data key="dData">standardVersion/ 1.0
 
 name/ two_initial
-</data>
-    </node>
-    <node id="nParams">
-      <data key="dNote">informal</data>
-      <data key="dData">Global Parameters
 
-Version: 1.0.0
-Author: Alexey Fedoseev
-Author e-mail: aleksey@fedoseev.net
-License: LGPL 3.0</data>
-    </node>
-    <node id="nModules">
-      <data key="dNote">informal</data>
-      <data key="dData">ROS2 HSM Modules
+version/ 1.0.0
 
-Debug
-Timer</data>
+author/ Alexey Fedoseev
+
+contact/ aleksey@fedoseev.net
+
+license/ LGPL 3.0
+
+platform/ HSM-ROS2
+
+platformLanguage/ Python</data>
+    </node>
+    <node id="cDebug">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT Debug</data>
+      <data key="dData">type/ Debug</data>
+    </node>
+    <node id="cTimer">
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT Timer</data>
+      <data key="dData">type/ Timer</data>
     </node>
     <node id="nInit">
       <data key="dVertex">initial</data>

@@ -63,7 +63,7 @@ adapter as well, found in the share directory of this package.
 * `generate` fills the missing `platformLanguage` metainformation with `Python`.
 * `test` runs the diagram against the fake robot of `hsm_robot_ros_tests` (the
   `hsm_robot_test` runner, `docs/hsm_robot_testing.md` §10 there) and reports every failed
-  expectation of the `ros2 hsm test` comment; its output is the event timeline. It needs
+  expectation of the `ROS2 HSM Test` comment; its output is the event timeline. It needs
   the `hsm_tests` package and the HSM dispatcher `hsmd` (`python3-hsm-dispatcher`) the
   generated controller runs on in the `setup` environment. Cancel stops the whole run.
 * All four are on the plugin toolbar.
@@ -115,7 +115,11 @@ a check reports one finding at a time.
 
 | rule | element | the problem |
 |---|---|---|
-| `unknown-module` | the comment | `ros2 hsm modules` names an unknown module |
+| `unknown-module` | the comment | a `CGML_COMPONENT` (or `ROS2 HSM Modules`) names an unknown module |
+| `component-id` | the comment | a `CGML_COMPONENT` identifier is not its type |
+| `component-type` | the comment | a `CGML_COMPONENT` without `type/` |
+| `component-syntax` | the comment | a `CGML_COMPONENT` line is not `name/ value` |
+| `duplicate-module` | the comment | a module declared twice |
 | `undeclared-module` | the state or transition | the code calls a module not declared |
 | `two-initial` | the second initial | two initial pseudostates on the top level |
 | `no-initial` | | no initial pseudostate on the top level |
@@ -127,12 +131,12 @@ a check reports one finding at a time.
 | `spaced-name` | the state | a state name with spaces |
 | `duplicate-name` | the state | two states with the same qualified name |
 | `empty-composite` | the state | a composite state without substates |
-| `test-rule` | the comment | a line of `ros2 hsm test` is not a rule or names an unknown event |
+| `test-rule` | the comment | a line of `ROS2 HSM Test` is not a rule or names an unknown event |
 | `cyberiadaml` | | the file is not read as a CyberiadaML diagram |
 | `generator` | | the package is not written (exit 2-4) |
 
 The `test` action writes the same file: `[]` when the run passes, otherwise an entry per
-failed expectation, rule `test-failed`, pointing at the `ros2 hsm test` comment, or rule
+failed expectation, rule `test-failed`, pointing at the `ROS2 HSM Test` comment, or rule
 `test-controller` when the controller ends with an error, e.g. an error of the diagram
 code which stops the dispatcher (the controller exits with 1). A diagram the generator rejects
 gets the generator's finding. A node of the framework which fails to start fails the
@@ -140,10 +144,10 @@ action itself.
 
 ## The expectations comment
 
-A diagram states what a test run has to see in a comment, the way it declares its modules:
+A diagram states what a test run has to see in the formal comment named `ROS2 HSM Test`
+(`docs/diagram_comments.md`), one rule a line:
 
 ```
-ros2 hsm test
 MOVE_COMPLETED
 MOVE_COMPLETED x4 within 60
 POINT_PASSED within 10

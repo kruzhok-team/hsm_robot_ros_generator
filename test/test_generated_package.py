@@ -87,3 +87,15 @@ def test_the_generator_writes_only_into_the_output_directory(tmp_path):
     before = sorted(os.listdir(GENERATOR_DIR))
     generate(VALID['minimal'], tmp_path / 'pkg')
     assert sorted(os.listdir(GENERATOR_DIR)) == before
+
+
+def test_the_legacy_comments_give_the_same_package(tmp_path):
+    # the yEd comments Global Parameters and ROS2 HSM Modules are read as CGML_META and
+    # CGML_COMPONENT are
+    legacy = generate(VALID['legacy_yed'], tmp_path / 'legacy')
+    cgml = generate(VALID['turtle-square'], tmp_path / 'cgml')
+    for name in ('package.xml', 'setup.py', os.path.join('hsm_controller', 'turtle_square.py')):
+        with open(os.path.join(legacy, name)) as a, open(os.path.join(cgml, name)) as b:
+            # the header names the diagram file
+            assert [line for line in a if 'graphml' not in line] == \
+                [line for line in b if 'graphml' not in line], '{} differs'.format(name)

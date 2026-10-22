@@ -59,7 +59,8 @@ adapter as well, found in the share directory of this package.
   needs the document saved.
 * `generate` overwrites the controller (`-f`): the editor is the place the diagram is
   edited, so regenerating is the normal cycle. One workspace holds one `hsm_controller`,
-  so a second diagram needs a workspace of its own.
+  so a second diagram needs a workspace of its own; regenerating with `-f` removes the
+  controller module of the diagram generated there before.
 * `generate` fills the missing `platformLanguage` metainformation with `Python`.
 * `test` runs the diagram against the fake robot of `hsm_robot_ros_tests` (the
   `hsm_robot_test` runner, `docs/hsm_robot_testing.md` §10 there) and reports every failed

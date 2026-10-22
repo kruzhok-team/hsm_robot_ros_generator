@@ -34,7 +34,8 @@ DESCRIPTION = 'Generate a ROS2 HSM controller package from a CyberiadaML diagram
 EPILOG = ('Note that the generated package is always named hsm_controller and declares a '
           'single console script, so only one state machine can be built from a given '
           'output directory: generating a second diagram into the same directory replaces '
-          'the setup files and drops the entry point of the first one.')
+          'the setup files and drops the entry point of the first one; with --force its '
+          'controller module is removed as well.')
 
 EDITOR_PLUGIN_DIR = 'editor-plugin'
 

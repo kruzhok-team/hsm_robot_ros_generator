@@ -787,8 +787,22 @@ class CodeGenerator:
                 print('Writing {} as {}'.format(name, target_file))
             shutil.copyfile(source_file, target_file)
 
+    def __remove_other_controllers(self):
+        # the setup files declare the controller of this diagram only, so with force the
+        # controller another diagram left in the package is removed as dead code
+        target_dir = self.__script_target_dir
+        if not self.__force or not os.path.isdir(target_dir):
+            return
+        own = self.__sm_name_lo + '.py'
+        for name in sorted(os.listdir(target_dir)):
+            if name.endswith('.py') and name not in LIBRARY_FILES and name != own:
+                if not self.__quiet:
+                    print('Removing the controller {}'.format(name))
+                os.remove(os.path.join(target_dir, name))
+
     def generate_code(self):
         controller_template = CONTROLLER_SCRIPT + TEMPLATES_EXTENSION
+        self.__remove_other_controllers()
         # sorted() keeps the reported order stable between runs
         for tmpl in sorted(os.listdir(TEMPLATES_DIR)):
             tmpl_file = os.path.join(TEMPLATES_DIR, tmpl)

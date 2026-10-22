@@ -111,6 +111,17 @@ def test_force_replaces_the_controller(tmp_path):
     assert result.returncode == EXIT_OK, result.stderr
 
 
+def test_force_removes_the_controller_of_another_diagram(tmp_path):
+    # the setup files declare one controller, so the one of the first diagram is dead code
+    output = tmp_path / 'pkg'
+    generate(examples()['turtle-square'], output)
+    result = run_generator(examples()['turtle-square-wheels'], output, '-f')
+    assert result.returncode == EXIT_OK, result.stderr
+    modules = os.listdir(os.path.join(str(output), 'hsm_controller'))
+    assert 'turtle_square_wheels.py' in modules
+    assert 'turtle_square.py' not in modules
+
+
 def test_quiet_generates_the_same_package(tmp_path):
     diagram = examples()['turtle-square']
     loud = generate(diagram, tmp_path / 'loud')

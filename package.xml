@@ -9,6 +9,9 @@
 
   <!-- the generator reads the message codes from the controller constants -->
   <depend>hsm_interfaces</depend>
+  <!-- the Cyberiada toolchain packages (keys: hsm_robot_ros_api/docker/rosdep.yaml) -->
+  <exec_depend>python3-libcyberiadamlpp</exec_depend>
+  <exec_depend>python3-hsm-dispatcher</exec_depend>
 
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>

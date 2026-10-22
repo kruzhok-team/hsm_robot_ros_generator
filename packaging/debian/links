@@ -1,0 +1,4 @@
+# debhelper links of the ros-@ROS_DISTRO@-hsm-generator .deb, added to the bloom
+# debian/ by hsm_robot_ros_api/docker/in-container.sh (package): the hsm-ros2
+# plugin in the system plugin folder of CyberiadaPro
+opt/ros/@ROS_DISTRO@/share/hsm_generator/editor-plugin usr/share/cyberiada-pro/plugins/hsm-ros2

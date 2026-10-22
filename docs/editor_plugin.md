@@ -164,6 +164,7 @@ duration. The comment changes nothing in the generated code; `--check` validates
 |---|---|
 | `colcon build` of this package | `install/hsm_generator/share/hsm_generator/editor-plugin` — add it with `--plugin-path` or `CYBERIADA_PRO_PLUGIN_PATH` |
 | `hsm_generator --install-editor-plugin [DIR]` | `DIR/hsm-ros2`, by default the user folder `~/.local/share/Cyberiada/CyberiadaPro/plugins/hsm-ros2` |
+| the `ros-jazzy-hsm-generator` .deb | the system folder: `/usr/share/cyberiada-pro/plugins/hsm-ros2`, a link to `/opt/ros/jazzy/share/hsm_generator/editor-plugin` (`packaging/debian/links`) |
 
 The installer copies the folder and pins `HSM_GENERATOR` and the `setup` default to the
 generator and the ROS 2 environment it runs from.

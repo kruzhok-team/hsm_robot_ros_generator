@@ -47,9 +47,11 @@ platform/ HSM-ROS2
 
 platformLanguage/ Python
 
-cyberiadaEditorView/ 1.30234 147 -342
+cyberiadaEditorView/ 1.30234 629 -446
 
 geometry/ full
+
+regionGeometry/ stored
 
 transitionOrder/ actionFirst
 
@@ -83,10 +85,12 @@ eventPropagation/ block</data>
         <rect x="750.000000" y="-125.000000" width="400.000000" height="425.000000"/>
       </data>
       <graph id="n2::n0:" edgedefault="directed">
+        <data key="dGeometry">
+          <rect x="0.000000" y="27.000000" width="400.000000" height="398.000000"/>
+        </data>
         <node id="n2::n0::n0">
           <data key="dName">turn_right</data>
           <data key="dData">entry/
-# PI/2 per 5 sec 
 Wheels.turn_right((math.pi/2)/5)
 Timer.start(5.0)
 
@@ -94,13 +98,12 @@ exit/
 Wheels.stop()
 </data>
           <data key="dGeometry">
-            <rect x="25.000000" y="36.500000" width="350.000000" height="144.403115"/>
+            <rect x="25.000000" y="23.000000" width="350.000000" height="144.403115"/>
           </data>
         </node>
         <node id="n2::n0::n1">
           <data key="dName">go_ahead</data>
           <data key="dData">entry/
-# 1 meter per sec
 Wheels.forward(1.0)
 Timer.start(4.0)
 
@@ -108,10 +111,24 @@ exit/
 Wheels.stop()
 </data>
           <data key="dGeometry">
-            <rect x="25.000000" y="236.500000" width="350.000000" height="144.403115"/>
+            <rect x="25.000000" y="223.000000" width="350.000000" height="144.403115"/>
           </data>
         </node>
       </graph>
+    </node>
+    <node id="n1">
+      <data key="dNote">informal</data>
+      <data key="dData">PI/2 per 5 sec</data>
+      <data key="dGeometry">
+        <rect x="1200.000000" y="-25.000000" width="200.000000" height="50.000000"/>
+      </data>
+    </node>
+    <node id="n2">
+      <data key="dNote">informal</data>
+      <data key="dData">1 meter per sec</data>
+      <data key="dGeometry">
+        <rect x="1200.000000" y="175.000000" width="200.000000" height="50.000000"/>
+      </data>
     </node>
     <edge id="n0-n2::n0::n0" source="n0" target="n2::n0::n0">
       <data key="dSourcePoint">
@@ -143,6 +160,24 @@ Wheels.stop()
       </data>
       <data key="dLabelGeometry">
         <rect x="14.834312" y="-38.168624" width="133.125000" height="27.000000"/>
+      </data>
+    </edge>
+    <edge id="n1-n2::n0::n0" source="n1" target="n2::n0::n0">
+      <data key="dPivot"/>
+      <data key="dSourcePoint">
+        <point x="0.000000" y="24.200445"/>
+      </data>
+      <data key="dTargetPoint">
+        <point x="350.000000" y="73.600779"/>
+      </data>
+    </edge>
+    <edge id="n2-n2::n0::n1" source="n2" target="n2::n0::n1">
+      <data key="dPivot"/>
+      <data key="dSourcePoint">
+        <point x="0.000000" y="24.200445"/>
+      </data>
+      <data key="dTargetPoint">
+        <point x="350.000000" y="73.600779"/>
       </data>
     </edge>
   </graph>

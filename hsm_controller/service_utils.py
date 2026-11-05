@@ -43,8 +43,11 @@ def wait_for_service(node, client, description):
     limit = getattr(node, 'service_startup_limit', SERVICE_STARTUP_LIMIT)
     waited = 0.0
     while not client.wait_for_service(timeout_sec=timeout):
+        if not waited:
+            # once: the discovery of the node takes a few checks at every start
+            node.get_logger().info('{} service not available, waiting up to {} seconds'.format(
+                description, limit))
         waited += timeout
         if waited >= limit:
             raise ServiceUnavailableError('{} service is not available after {} seconds'.format(
                 description, limit))
-        node.get_logger().info('{} service not available'.format(description))

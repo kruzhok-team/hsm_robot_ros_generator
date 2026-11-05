@@ -64,9 +64,10 @@ adapter as well, found in the share directory of this package.
 * `generate` fills the missing `platformLanguage` metainformation with `Python`.
 * `test` runs the diagram against the fake robot of `hsm_robot_ros_tests` (the
   `hsm_robot_test` runner, `docs/hsm_robot_testing.md` §10 there) and reports every failed
-  expectation of the `ROS2 HSM Test` comment; its output is the event timeline. It needs
-  the `hsm_tests` package and the HSM dispatcher `hsmd` (`python3-hsm-dispatcher`) the
-  generated controller runs on in the `setup` environment. Cancel stops the whole run.
+  expectation of the `ROS2 HSM Test` comment; its output is the timeline of the events and
+  the `Debug.print` lines of the diagram. It needs the `hsm_tests` package and the HSM
+  dispatcher `hsmd` (`python3-hsm-dispatcher`) the generated controller runs on in the
+  `setup` environment. Cancel stops the whole run.
 * All four are on the plugin toolbar.
 
 ## Parameters

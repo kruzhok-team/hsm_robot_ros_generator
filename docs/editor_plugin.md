@@ -117,8 +117,9 @@ before the run and Stop.
 | an event handled | `running`, the time, the rules that hold | the active states, the fired transitions | the event, `origin` `system`, the outcome, the fired transitions; a completion `model` |
 | the end: the duration, every rule holds, the controller ends | `finished`, the verdict | the last configuration | — |
 
-The run ends as the one-shot `test` does and writes the same diagnostics file; Stop ends it
-earlier, as Cancel does.
+The run ends as the one-shot `test` does and writes the same diagnostics file. Stop ends it
+earlier as its duration would: the rules are checked by then and the diagnostics written;
+before the controller starts, Stop cancels the run.
 
 ## The trace
 
@@ -126,7 +127,7 @@ The controller publishes its steps when its parameter `trace` is true (false by 
 
 | | |
 |---|---|
-| topic | `/hsm_ros_trace` (`TRACE_TOPIC`), `std_msgs/String`, reliable, transient local, the depth `message_queue_length` |
+| topic | `/hsm_ros_trace` (`TRACE_TOPIC`), `std_msgs/String`, reliable, transient local, the depth 100 (`TRACE_QUEUE_LEN`): a subscription matched after the first events still gets the start |
 | a message | one JSON object per step: the start, and every event the controller handles with the completions it causes |
 | ids | the element ids of the diagram: `ELEMENTS` of the generated module maps every model id the trace reports to its diagram id (a transition keeps its `id=`); an initial transition the generator adds has no element and is left out |
 

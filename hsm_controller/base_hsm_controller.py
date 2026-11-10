@@ -71,7 +71,8 @@ class BaseHSMController(rclpy.node.Node):
         trace = self.__declare(
             'trace', False, 'whether the steps of the machine are published on ' +
             hsm_controller.constants.TRACE_TOPIC)
-        self.__tracer = hsm_controller.trace.Tracer(self, trace, elements, queue_length)
+        self.__tracer = hsm_controller.trace.Tracer(self, trace, elements,
+                                                    hsm_controller.constants.TRACE_QUEUE_LEN)
         self.__msg_listener = self.create_subscription(hsm_interfaces.msg.SimpleMessage,
                                                        hsm_controller.constants.MESSAGES_TOPIC,
                                                        self.__simple_message_callback,

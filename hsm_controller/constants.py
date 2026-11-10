@@ -30,6 +30,8 @@ MESSAGES_TOPIC = '/hsm_ros_msg'
 STR_MESSAGES_TOPIC = '/hsm_ros_str_msg'
 # the ROS2 topic of the controller's steps, JSON in std_msgs/String (docs/editor_plugin.md)
 TRACE_TOPIC = '/hsm_ros_trace'
+# the steps the trace keeps for a late subscription: the start outlives the first events
+TRACE_QUEUE_LEN = 100
 # the ROS2 odometry topic
 ODOMETRY_TOPIC = '/odom'
 # the ROS2 laser scan topic

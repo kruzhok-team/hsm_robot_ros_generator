@@ -31,6 +31,7 @@ import hsm_controller.timer_caller
 import hsm_controller.navigation_caller
 import hsm_controller.pump_caller
 import hsm_controller.storage_caller
+import hsm_controller.trace
 import hsm_controller.wheels_caller
 
 import hsm_interfaces.msg
@@ -52,7 +53,7 @@ class BaseHSMController(rclpy.node.Node):
         return self.get_parameter(name).value
 
     def __init__(self, object_name, obj_list,
-                 has_ticks=False, has_seconds=False, has_minutes=False):
+                 has_ticks=False, has_seconds=False, has_minutes=False, elements=None):
 
         rclpy.node.Node.__init__(self, object_name)
         # how long the controller waits for the module services of the API before it gives
@@ -67,6 +68,10 @@ class BaseHSMController(rclpy.node.Node):
         queue_length = self.__declare(
             'message_queue_length', hsm_controller.constants.MSG_QUEUE_LEN,
             'the length of the ROS2 message queues')
+        trace = self.__declare(
+            'trace', False, 'whether the steps of the machine are published on ' +
+            hsm_controller.constants.TRACE_TOPIC)
+        self.__tracer = hsm_controller.trace.Tracer(self, trace, elements, queue_length)
         self.__msg_listener = self.create_subscription(hsm_interfaces.msg.SimpleMessage,
                                                        hsm_controller.constants.MESSAGES_TOPIC,
                                                        self.__simple_message_callback,
@@ -94,6 +99,13 @@ class BaseHSMController(rclpy.node.Node):
     def dispatch_event(self, event, arg):
         # this functions will be overloaded by the hsm controller implementation
         pass
+
+    def trace_hook(self):
+        # the trace argument of the dispatcher, None while the trace is off
+        return self.__tracer.hook()
+
+    def trace_step(self, dispatcher, outcomes, error=None):
+        self.__tracer.step(dispatcher, outcomes, error)
 
     def terminate(self, *args):
         # close the controller node

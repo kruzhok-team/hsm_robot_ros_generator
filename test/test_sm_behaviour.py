@@ -23,30 +23,12 @@
 import pytest
 
 import hsm_stubs
-from conftest import controller_module, diagrams, examples, generate
+from conftest import diagrams, examples
 
 pytestmark = pytest.mark.unit
 
 VALID = diagrams('valid')
 EXAMPLES = examples()
-
-
-@pytest.fixture
-def controller(tmp_path):
-    # generate a diagram and return its controller, driven without ROS2. The results
-    # of the API calls are set before the controller is built, because the entry actions
-    # of the initial state run while it is being built
-    counter = []
-
-    def _controller(diagram, results=None):
-        counter.append(diagram)
-        package = generate(diagram, tmp_path / 'pkg{}'.format(len(counter)))
-        cls, recorder = hsm_stubs.load_controller(package, controller_module(package))
-        for call, value in (results or {}).items():
-            recorder.result(call, value)
-        return cls(), recorder
-    yield _controller
-    hsm_stubs.remove()
 
 
 def test_initial_state_is_entered(controller):

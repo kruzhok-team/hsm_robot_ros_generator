@@ -71,16 +71,26 @@ class FakeBaseHSMController:
     # the base class of the generated controller, without the ROS2 node
 
     def __init__(self, object_name, obj_list, has_ticks=False, has_seconds=False,
-                 has_minutes=False):
+                 has_minutes=False, elements=None):
         self.object_name = object_name
         self.obj_list = tuple(obj_list)
         self.has_ticks = has_ticks
         self.has_seconds = has_seconds
         self.has_minutes = has_minutes
+        self.elements = elements
         self.terminated = False
+        # the trace records and the steps, as the tracer of the base controller gets them
+        self.records = []
+        self.steps = []
 
     def dispatch_event(self, eventstr, arg):
         pass
+
+    def trace_hook(self):
+        return self.records.append
+
+    def trace_step(self, dispatcher, outcomes, error=None):
+        self.steps.append((list(outcomes), error))
 
     def terminate(self, *args):
         self.terminated = True

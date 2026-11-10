@@ -78,17 +78,30 @@ machine = hsmd.Machine('move_along_trajectory', states=[
             ]),
     ]),
 ], transitions=[
-    hsmd.Transition('initial', 'move_along_trajectory_follow_the_path_follow_traj'),
+    hsmd.Transition('initial', 'move_along_trajectory_follow_the_path_follow_traj', id='e0'),
     hsmd.Transition('move_along_trajectory.initial', 'move_along_trajectory_follow_the_path'),
     hsmd.Transition(
         'move_along_trajectory_follow_the_path.initial',
         'move_along_trajectory_follow_the_path_follow_traj'),
-    hsmd.Transition('move_along_trajectory_follow_the_path_complete', 'final', 'TIMER_TICK'),
+    hsmd.Transition('move_along_trajectory_follow_the_path_complete', 'final', 'TIMER_TICK', id='e1'),
     hsmd.Transition(
         'move_along_trajectory_follow_the_path_follow_traj',
         'move_along_trajectory_follow_the_path_complete',
-        'MOVE_COMPLETED'),
+        'MOVE_COMPLETED',
+        id='n2::n0::e0'),
 ])
+
+# the diagram id of every model id the trace reports
+ELEMENTS = {
+    'e0': 'e0',
+    'final': 'n4',
+    'move_along_trajectory': 'n2',
+    'move_along_trajectory_follow_the_path': 'n2::n0',
+    'move_along_trajectory_follow_the_path_follow_traj': 'n2::n0::n0',
+    'move_along_trajectory_follow_the_path_complete': 'n2::n0::n1',
+    'e1': 'e1',
+    'n2::n0::e0': 'n2::n0::e0',
+}
 
 
 class Move_along_trajectory_HSMController(hsm_controller.base_hsm_controller.BaseHSMController):
@@ -105,7 +118,8 @@ class Move_along_trajectory_HSMController(hsm_controller.base_hsm_controller.Bas
             ('Debug', 'Timer', 'Navigation', 'Storage', 'Wheels'),
             True,
             False,
-            False)
+            False,
+            ELEMENTS)
         global Debug
         Debug = hsm_controller.debug_caller.Debug
         global Timer
@@ -117,7 +131,7 @@ class Move_along_trajectory_HSMController(hsm_controller.base_hsm_controller.Bas
         global Wheels
         Wheels = hsm_controller.wheels_caller.Wheels
 
-        dispatcher = hsmd.Dispatcher(machine, namespace=globals())
+        dispatcher = hsmd.Dispatcher(machine, namespace=globals(), trace=self.trace_hook())
         self.__run(dispatcher, dispatcher.start)
         self.__dispatcher = dispatcher
 
@@ -125,19 +139,26 @@ class Move_along_trajectory_HSMController(hsm_controller.base_hsm_controller.Bas
         if eventstr is None or self.__dispatcher is None:
             return
         if arg is None:
-            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr)
+            self.__run(self.__dispatcher, self.__send, eventstr)
         else:
-            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr, value=arg)
+            self.__run(self.__dispatcher, self.__send, eventstr, value=arg)
+
+    def __send(self, eventstr, **parameters):
+        # all the outcomes, the completions the event causes included, for the trace
+        self.__dispatcher.post(eventstr, **parameters)
+        return self.__dispatcher.run()
 
     def __run(self, dispatcher, step, *args, **parameters):
         # an error of the diagram code stops the dispatcher, and so the controller
         try:
-            step(*args, **parameters)
+            outcomes = step(*args, **parameters)
         except hsmd.DispatcherError as e:
             self.get_logger().error('The state machine is stopped: {}'.format(e))
             self.failed = True
+            self.trace_step(dispatcher, [], str(e))
             self.terminate()
             return
+        self.trace_step(dispatcher, outcomes)
         if dispatcher.finished():
             self.terminate()
 

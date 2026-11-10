@@ -46,9 +46,17 @@ machine = hsmd.Machine('timer_elapsed', states=[
     hsmd.State('waiting', entry=on_st_waiting_enter),
     hsmd.State('awake', entry=on_st_awake_enter),
 ], transitions=[
-    hsmd.Transition('initial', 'waiting'),
-    hsmd.Transition('waiting', 'awake', 'TIMER_ELAPSED', action=on_waiting_TO_awake_TIMER_ELAPSED),
+    hsmd.Transition('initial', 'waiting', id='e0'),
+    hsmd.Transition('waiting', 'awake', 'TIMER_ELAPSED', action=on_waiting_TO_awake_TIMER_ELAPSED, id='e1'),
 ])
+
+# the diagram id of every model id the trace reports
+ELEMENTS = {
+    'e0': 'e0',
+    'waiting': 'nA',
+    'awake': 'nB',
+    'e1': 'e1',
+}
 
 
 class Timer_elapsed_HSMController(hsm_controller.base_hsm_controller.BaseHSMController):
@@ -65,13 +73,14 @@ class Timer_elapsed_HSMController(hsm_controller.base_hsm_controller.BaseHSMCont
             ('Debug', 'Timer'),
             False,
             False,
-            False)
+            False,
+            ELEMENTS)
         global Debug
         Debug = hsm_controller.debug_caller.Debug
         global Timer
         Timer = hsm_controller.timer_caller.Timer
 
-        dispatcher = hsmd.Dispatcher(machine, namespace=globals())
+        dispatcher = hsmd.Dispatcher(machine, namespace=globals(), trace=self.trace_hook())
         self.__run(dispatcher, dispatcher.start)
         self.__dispatcher = dispatcher
 
@@ -79,19 +88,26 @@ class Timer_elapsed_HSMController(hsm_controller.base_hsm_controller.BaseHSMCont
         if eventstr is None or self.__dispatcher is None:
             return
         if arg is None:
-            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr)
+            self.__run(self.__dispatcher, self.__send, eventstr)
         else:
-            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr, value=arg)
+            self.__run(self.__dispatcher, self.__send, eventstr, value=arg)
+
+    def __send(self, eventstr, **parameters):
+        # all the outcomes, the completions the event causes included, for the trace
+        self.__dispatcher.post(eventstr, **parameters)
+        return self.__dispatcher.run()
 
     def __run(self, dispatcher, step, *args, **parameters):
         # an error of the diagram code stops the dispatcher, and so the controller
         try:
-            step(*args, **parameters)
+            outcomes = step(*args, **parameters)
         except hsmd.DispatcherError as e:
             self.get_logger().error('The state machine is stopped: {}'.format(e))
             self.failed = True
+            self.trace_step(dispatcher, [], str(e))
             self.terminate()
             return
+        self.trace_step(dispatcher, outcomes)
         if dispatcher.finished():
             self.terminate()
 

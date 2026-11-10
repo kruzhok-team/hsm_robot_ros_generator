@@ -28,6 +28,8 @@ from hsm_interfaces.msg import StringArgMessage
 MESSAGES_TOPIC = '/hsm_ros_msg'
 # the ROS2 topic for HSM string messages
 STR_MESSAGES_TOPIC = '/hsm_ros_str_msg'
+# the ROS2 topic of the controller's steps, JSON in std_msgs/String (docs/editor_plugin.md)
+TRACE_TOPIC = '/hsm_ros_trace'
 # the ROS2 odometry topic
 ODOMETRY_TOPIC = '/odom'
 # the ROS2 laser scan topic

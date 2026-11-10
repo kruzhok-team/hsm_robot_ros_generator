@@ -3,9 +3,10 @@
 The `hsm-ros2` plugin makes CyberiadaPro the IDE of HSM-ROS2: it checks a diagram,
 generates the `hsm_controller` ROS 2 package, builds it with colcon and tests the diagram
 with the fake robot. The plugin is
-written against the editor's plugin interface, level 1 (`docs/PLUGIN-API.md` of
+written against the editor's plugin interface (`docs/PLUGIN-API.md` of
 CyberiadaHSM-Editor): the editor runs a program per action and takes back the result the
-action declares.
+action declares; the conditions of the actions grey out what cannot run, and the test runs
+as an observed session that marks the running controller on the diagram.
 
 | | |
 |---|---|
@@ -54,21 +55,95 @@ adapter as well, found in the share directory of this package.
 | `generate` | `files` (`outdir: ws`) | `hsm_generator ${input} -o ${outdir}/src/hsm_controller -f -q` | 0 | 60 s |
 | `build` | `log` | `--cd ${param:ws} colcon build --packages-select hsm_controller` | 0 | none |
 | `test` | `diagnostics` | `--ros-exec hsm_tests hsm_robot_test ${input} --json ${diagnostics} --duration ... --pose ... --scan ... [--real-time]` | 0, 1 | none |
+| `test-live` (session) | `diagnostics` | the `test` command and `--session` | 0, 1 | none |
 
-* The actions read `${input}`, the editor's snapshot with the unsaved edits; none of them
-  needs the document saved.
+* The actions read `${input}`, the editor's snapshot; but every action that generates,
+  builds or runs needs the diagram saved (see Conditions), so the snapshot is the file.
 * `generate` overwrites the controller (`-f`): the editor is the place the diagram is
   edited, so regenerating is the normal cycle. One workspace holds one `hsm_controller`,
   so a second diagram needs a workspace of its own; regenerating with `-f` removes the
   controller module of the diagram generated there before.
-* `generate` fills the missing `platformLanguage` metainformation with `Python`.
+* `generate` and `test` fill the missing `platformLanguage` metainformation with `Python`
+  and save it (`save`), so the document stays clean.
 * `test` runs the diagram against the fake robot of `hsm_robot_ros_tests` (the
   `hsm_robot_test` runner, `docs/hsm_robot_testing.md` §10 there) and reports every failed
   expectation of the `ROS2 HSM Test` comment; its output is the timeline of the events and
   the `Debug.print` lines of the diagram. It needs the `hsm_tests` package and the HSM
   dispatcher `hsmd` (`python3-hsm-dispatcher`) the generated controller runs on in the
   `setup` environment. Cancel stops the whole run.
-* All four are on the plugin toolbar.
+* `test-live` is the same run as an observed session (see The session); it `replaces`
+  `test`, so an editor with the sessions shows it instead, and an older editor and
+  `--run-plugin hsm-ros2:test` keep the one-shot run.
+* All of them are on the plugin toolbar.
+
+## Conditions
+
+| action | `when` |
+|---|---|
+| `check` | `sm`, `!fa` |
+| `generate`, `test`, `test-live` | `saved`, `sm`, `!fa`, `initial`, `meta:platformLanguage=Python` |
+| `build` | `saved` |
+
+The descriptor `requires` `bash`, the interpreter. `ros2` and `colcon` are not in
+`requires`: they come from the `setup` script and not from the editor's `PATH`, so
+`ros2_env` checks them in the run. `check` stays open on unsaved edits and reports a
+missing initial state as a finding. A diagram without `platformLanguage` passes the
+`meta:` token: the action fills it.
+
+## The session
+
+`test-live` runs `hsm_robot_test --session`: the editor and the runner talk JSON-RPC
+(`docs/PLUGIN-API.md`, Sessions, kind `observed`), and the controller reports its steps on
+a topic the runner listens to (see The trace). The user's input is the parameter dialog
+before the run and Stop.
+
+```
+ CyberiadaPro (document locked)        hsm_robot_test --session         ROS 2, random domain
++--------------------------------+   +----------------------------+  +---------------------+
+| canvas: the active states,     |<--| state {status, text,       |  | API nodes           |
+|         the fired transitions  |   |        active, fired}      |  | fake robot          |
+| session tab: status, text,     |<--| history {time, event,      |  |                     |
+|   one history row per event    |   |   origin, outcome, fired}  |  | hsm_controller      |
+|   [Stop] ---- shutdown ------->|-->| stops the nodes, writes    |  |  trace:=true        |
+| output tab: the timeline,      |<--|   the diagnostics, exits   |<-|  /hsm_ros_trace     |
+|   Debug.print, the errors      |log+----------------------------+  +---------------------+
++--------------------------------+
+```
+
+| Phase | `state` | canvas | `history` |
+|---|---|---|---|
+| the nodes start | `waiting`, "starting the nodes" | — | — |
+| the controller started | `running`, the time | the initial configuration | — |
+| an event handled | `running`, the time, the rules that hold | the active states, the fired transitions | the event, `origin` `system`, the outcome, the fired transitions; a completion `model` |
+| the end: the duration, every rule holds, the controller ends | `finished`, the verdict | the last configuration | — |
+
+The run ends as the one-shot `test` does and writes the same diagnostics file; Stop ends it
+earlier, as Cancel does.
+
+## The trace
+
+The controller publishes its steps when its parameter `trace` is true (false by default):
+
+| | |
+|---|---|
+| topic | `/hsm_ros_trace` (`TRACE_TOPIC`), `std_msgs/String`, reliable, transient local, the depth `message_queue_length` |
+| a message | one JSON object per step: the start, and every event the controller handles with the completions it causes |
+| ids | the element ids of the diagram: `ELEMENTS` of the generated module maps every model id the trace reports to its diagram id (a transition keeps its `id=`); an initial transition the generator adds has no element and is left out |
+
+```json
+{"time": 12.43, "history": [{"event": "MOVE_COMPLETED", "time": 12.43, "origin": "system",
+ "outcome": "fired", "fired": ["e5"]}], "fired": ["e5"], "active": ["n1", "n4"],
+ "finished": false}
+```
+
+* `time` is seconds from the start of the controller; `history` holds the rows of the
+  editor's `history` (`hsmd.session.history_row`), `origin` `model` for a completion and
+  `system` for an event of the API; `fired` every transition of the step, the initial ones
+  included; `active` the configuration after the step; `error` the error that stopped the
+  machine.
+* A tick (`TIMER_TICK`) that fires nothing is no step.
+* An internal transition marks its state; the trace needs `hsmd.session.history_row`
+  (hsm-dispatcher-py after 0.2.0), else the controller logs an error and runs untraced.
 
 ## Parameters
 
@@ -187,5 +262,7 @@ CyberiadaPro --batch examples/turtle-square.graphml --plugin-path editor-plugin/
 ```
 
 `test/test_check.py` covers `--check`/`--json` and the expectations comment,
-`test/test_editor_plugin.py` the descriptor, the adapter and, when the editor is found, a
-batch run. The `test` action itself is tested with its runner in `hsm_robot_ros_tests`.
+`test/test_editor_plugin.py` the descriptor, the conditions, the session block, the
+adapter and, when the editor is found, a batch run; `test/test_trace.py` the ids of the
+generated module and the trace messages. The `test` and `test-live` actions are tested
+with their runner in `hsm_robot_ros_tests`.

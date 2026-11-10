@@ -2,9 +2,14 @@
   "api": 1,
   "id": "hsm-ros2",
   "name": "HSM ROS2",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Checks the diagram against the HSM-ROS2 robot API, generates the hsm_controller ROS 2 package, builds it with colcon and tests the diagram with the fake robot. Needs ROS 2 with the hsm_generator and hsm_interfaces packages, and hsm_tests with the hsmd dispatcher for the test.",
   "interpreter": "bash",
+  "requires": {
+    "programs": [
+      "bash"
+    ]
+  },
   "parameters": [
     {
       "id": "setup",
@@ -103,6 +108,10 @@
       "icon": "icons/check.svg",
       "toolbar": true,
       "description": "Check the states, the transitions and the robot API usage",
+      "when": [
+        "sm",
+        "!fa"
+      ],
       "argv": [
         "${plugin_dir}/ros2_env",
         "--setup",
@@ -124,10 +133,18 @@
       "outdir": "ws",
       "icon": "icons/generate.svg",
       "toolbar": true,
+      "save": true,
       "meta": {
         "platformLanguage": "Python"
       },
       "description": "Write the hsm_controller package into the src directory of the workspace",
+      "when": [
+        "saved",
+        "sm",
+        "!fa",
+        "initial",
+        "meta:platformLanguage=Python"
+      ],
       "argv": [
         "${plugin_dir}/ros2_env",
         "--setup",
@@ -152,6 +169,9 @@
       "icon": "icons/build.svg",
       "toolbar": true,
       "description": "Build the generated package with colcon; its output streams into the plugin's output tab",
+      "when": [
+        "saved"
+      ],
       "argv": [
         "${plugin_dir}/ros2_env",
         "--setup",
@@ -181,7 +201,18 @@
       "timeout": 0,
       "icon": "icons/test.svg",
       "toolbar": true,
+      "save": true,
+      "meta": {
+        "platformLanguage": "Python"
+      },
       "description": "Run the diagram against the fake robot and check the expectations of its ros2 hsm test comment; the event timeline streams into the plugin's output tab",
+      "when": [
+        "saved",
+        "sm",
+        "!fa",
+        "initial",
+        "meta:platformLanguage=Python"
+      ],
       "argv": [
         "${plugin_dir}/ros2_env",
         "--setup",
@@ -221,5 +252,75 @@
         "realtime"
       ]
     }
-  ]
+  ],
+  "session": {
+    "version": 1,
+    "actions": [
+      {
+        "id": "test-live",
+        "label": "Test with the fake robot...",
+        "result": "diagnostics",
+        "exit_ok": [
+          0,
+          1
+        ],
+        "icon": "icons/test.svg",
+        "toolbar": true,
+        "save": true,
+        "meta": {
+          "platformLanguage": "Python"
+        },
+        "description": "Run the diagram against the fake robot, marking its active states as it runs, and check the expectations of its ros2 hsm test comment; the event timeline streams into the plugin's output tab",
+        "when": [
+          "saved",
+          "sm",
+          "!fa",
+          "initial",
+          "meta:platformLanguage=Python"
+        ],
+        "replaces": [
+          "test"
+        ],
+        "argv": [
+          "${plugin_dir}/ros2_env",
+          "--setup",
+          "${param:setup}",
+          "--ros-exec",
+          "hsm_tests",
+          "hsm_robot_test",
+          "${input}",
+          "--json",
+          "${diagnostics}",
+          "--duration",
+          "${param:duration}",
+          "--pose",
+          "${param:x}",
+          "${param:y}",
+          "${param:theta}",
+          "--scan",
+          "${param:scan_forward}",
+          "${param:scan_right}",
+          "${param:scan_elsewhere}",
+          {
+            "if": "realtime",
+            "argv": [
+              "--real-time"
+            ]
+          },
+          "--session"
+        ],
+        "parameters": [
+          "setup",
+          "duration",
+          "x",
+          "y",
+          "theta",
+          "scan_forward",
+          "scan_right",
+          "scan_elsewhere",
+          "realtime"
+        ]
+      }
+    ]
+  }
 }

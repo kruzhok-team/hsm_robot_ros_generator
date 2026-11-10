@@ -68,13 +68,35 @@ machine = hsmd.Machine('pass_labirinth', states=[
         ]),
     ]),
 ], transitions=[
-    hsmd.Transition('initial', 'pass_labirinth_go_to_point_start'),
+    hsmd.Transition('initial', 'pass_labirinth_go_to_point_start', id='e0'),
     hsmd.Transition('pass_labirinth.initial', 'pass_labirinth_go_to_point'),
     hsmd.Transition('pass_labirinth_go_to_point.initial', 'pass_labirinth_go_to_point_start'),
-    hsmd.Transition('pass_labirinth_go_to_point_complete', 'final', 'TIMER_TICK'),
-    hsmd.Transition('pass_labirinth_go_to_point_start', 'pass_labirinth_go_to_point_complete', 'MOVE_COMPLETED'),
-    hsmd.Transition('pass_labirinth_go_to_point_start', 'pass_labirinth_go_to_point_obstacle', 'COLLISION_DETECTED'),
+    hsmd.Transition('pass_labirinth_go_to_point_complete', 'final', 'TIMER_TICK', id='e1'),
+    hsmd.Transition(
+        'pass_labirinth_go_to_point_start',
+        'pass_labirinth_go_to_point_complete',
+        'MOVE_COMPLETED',
+        id='n2::n0::e0'),
+    hsmd.Transition(
+        'pass_labirinth_go_to_point_start',
+        'pass_labirinth_go_to_point_obstacle',
+        'COLLISION_DETECTED',
+        id='n2::n0::e1'),
 ])
+
+# the diagram id of every model id the trace reports
+ELEMENTS = {
+    'e0': 'e0',
+    'final': 'n4',
+    'pass_labirinth': 'n2',
+    'pass_labirinth_go_to_point': 'n2::n0',
+    'pass_labirinth_go_to_point_start': 'n2::n0::n0',
+    'pass_labirinth_go_to_point_complete': 'n2::n0::n1',
+    'pass_labirinth_go_to_point_obstacle': 'n2::n0::n2',
+    'e1': 'e1',
+    'n2::n0::e0': 'n2::n0::e0',
+    'n2::n0::e1': 'n2::n0::e1',
+}
 
 
 class Pass_labirinth_HSMController(hsm_controller.base_hsm_controller.BaseHSMController):
@@ -91,7 +113,8 @@ class Pass_labirinth_HSMController(hsm_controller.base_hsm_controller.BaseHSMCon
             ('Debug', 'Timer', 'Navigation', 'Wheels'),
             True,
             False,
-            False)
+            False,
+            ELEMENTS)
         global Debug
         Debug = hsm_controller.debug_caller.Debug
         global Timer
@@ -101,7 +124,7 @@ class Pass_labirinth_HSMController(hsm_controller.base_hsm_controller.BaseHSMCon
         global Wheels
         Wheels = hsm_controller.wheels_caller.Wheels
 
-        dispatcher = hsmd.Dispatcher(machine, namespace=globals())
+        dispatcher = hsmd.Dispatcher(machine, namespace=globals(), trace=self.trace_hook())
         self.__run(dispatcher, dispatcher.start)
         self.__dispatcher = dispatcher
 
@@ -109,19 +132,26 @@ class Pass_labirinth_HSMController(hsm_controller.base_hsm_controller.BaseHSMCon
         if eventstr is None or self.__dispatcher is None:
             return
         if arg is None:
-            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr)
+            self.__run(self.__dispatcher, self.__send, eventstr)
         else:
-            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr, value=arg)
+            self.__run(self.__dispatcher, self.__send, eventstr, value=arg)
+
+    def __send(self, eventstr, **parameters):
+        # all the outcomes, the completions the event causes included, for the trace
+        self.__dispatcher.post(eventstr, **parameters)
+        return self.__dispatcher.run()
 
     def __run(self, dispatcher, step, *args, **parameters):
         # an error of the diagram code stops the dispatcher, and so the controller
         try:
-            step(*args, **parameters)
+            outcomes = step(*args, **parameters)
         except hsmd.DispatcherError as e:
             self.get_logger().error('The state machine is stopped: {}'.format(e))
             self.failed = True
+            self.trace_step(dispatcher, [], str(e))
             self.terminate()
             return
+        self.trace_step(dispatcher, outcomes)
         if dispatcher.finished():
             self.terminate()
 

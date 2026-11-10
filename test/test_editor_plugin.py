@@ -37,6 +37,11 @@ PLUGIN_DIR = os.path.join(GENERATOR_DIR, 'editor-plugin')
 ADAPTER = os.path.join(PLUGIN_DIR, 'ros2_env')
 EXIT_ADAPTER_USAGE = 5
 RESULTS = ('replace', 'new-document', 'diagnostics', 'files', 'log')
+SESSION_RESULTS = ('diagnostics', 'files', 'log')
+# the when tokens of the editor (PLUGIN-API.md, Conditions)
+WHEN_TOKENS = ('file', 'saved', 'selection', 'sm', 'initial', 'fa', 'fa-valid')
+# the batch exit code of a run that is not done, a disabled action included
+EXIT_EDITOR_FAILED = 6
 
 
 def descriptor():
@@ -49,14 +54,34 @@ def adapter(*args, env=None, cwd=None):
                           env=env, cwd=cwd)
 
 
+def actions(plugin):
+    # the one-shot and the session actions
+    return plugin['actions'] + plugin.get('session', {}).get('actions', [])
+
+
+def check_conditions(action):
+    # every when token is the editor's, and a meta: token is filled by the action's meta
+    for token in action.get('when', []):
+        token = token[1:] if token.startswith('!') else token
+        if token.startswith('meta:'):
+            key, _, value = token[len('meta:'):].partition('=')
+            assert action.get('meta', {}).get(key) == value, action['id']
+        else:
+            assert token in WHEN_TOKENS, action['id']
+    if action.get('meta'):
+        assert action.get('save') is True, action['id']
+
+
 def test_descriptor_is_consistent():
     plugin = descriptor()
     assert plugin['api'] == 1
     assert plugin['id'] == 'hsm-ros2'
     assert plugin['name'] == 'HSM ROS2'
+    assert plugin['requires'] == {'programs': ['bash']}
     parameters = {p['id'] for p in plugin['parameters']}
     assert sorted(a['id'] for a in plugin['actions']) == ['build', 'check', 'generate', 'test']
-    for action in plugin['actions']:
+    for action in actions(plugin):
+        check_conditions(action)
         assert action['result'] in RESULTS
         assert set(action['parameters']) <= parameters
         # a parameter an argv names is offered by the action's dialog
@@ -72,14 +97,30 @@ def test_descriptor_is_consistent():
             assert action['outdir'] in parameters
 
 
+def test_the_session_replaces_the_test():
+    plugin = descriptor()
+    session = plugin['session']
+    assert session['version'] == 1
+    one_shots = {a['id']: a for a in plugin['actions']}
+    [live] = session['actions']
+    assert live['id'] not in one_shots
+    assert live['replaces'] == ['test'] and live['result'] in SESSION_RESULTS
+    assert 'timeout' not in live and 'load' not in live
+    test = one_shots['test']
+    # the same run as the one-shot test, served as a session
+    assert live['argv'] == test['argv'] + ['--session']
+    for key in ('label', 'parameters', 'when', 'meta', 'save', 'exit_ok', 'result'):
+        assert live[key] == test[key], key
+
+
 def test_every_text_is_translated():
     plugin = descriptor()
     with open(os.path.join(PLUGIN_DIR, 'i18n', 'ru.json'), encoding='utf-8') as f:
         ru = json.load(f)
     assert ru[plugin['name']] == 'ROS2 ПРИМС'
     texts = [plugin['description']]
-    for item in plugin['parameters'] + plugin['actions']:
-        texts += [item[k] for k in ('label', 'description', 'filter') if k in item]
+    for item in plugin['parameters'] + actions(plugin):
+        texts += [item[k] for k in ('label', 'description', 'filter', 'reason') if k in item]
     assert [t for t in texts if t not in ru] == []
 
 
@@ -181,9 +222,10 @@ SETUP = os.path.join(os.environ.get('COLCON_PREFIX_PATH', '').split(os.pathsep)[
 
 
 def editor(diagram, action, *params):
-    command = [EDITOR, '--batch', diagram, '--plugin-path', GENERATOR_DIR,
-               '--run-plugin', 'hsm-ros2:' + action, '--plugin-param', 'setup=' + SETUP,
-               '--dump-plugin']
+    # diagram None: the run starts from an empty untitled document
+    command = [EDITOR, '--batch'] + ([diagram] if diagram else []) + [
+        '--plugin-path', GENERATOR_DIR, '--run-plugin', 'hsm-ros2:' + action,
+        '--plugin-param', 'setup=' + SETUP, '--dump-plugin']
     for p in params:
         command += ['--plugin-param', p]
     env = dict(os.environ, QT_QPA_PLATFORM='offscreen')
@@ -196,6 +238,20 @@ def test_editor_checks_and_generates(tmp_path):
     result = editor(diagrams('invalid')['unknown_event'], 'check')
     assert result.returncode == 0, result.stderr
     assert 'error undefined-event e1:' in result.stdout
-    result = editor(examples()['turtle-square'], 'generate', 'ws={}'.format(tmp_path / 'ws'))
+    # a copy: a save action writes the metainformation it fills into the document
+    diagram = shutil.copy(examples()['turtle-square'], tmp_path)
+    result = editor(diagram, 'generate', 'ws={}'.format(tmp_path / 'ws'))
     assert result.returncode == 0, result.stderr
     assert 'new src/hsm_controller/hsm_controller/turtle_square.py' in result.stdout
+
+
+@pytest.mark.skipif(EDITOR is None or not os.path.isfile(SETUP),
+                    reason='needs CyberiadaPro and a sourced workspace')
+def test_editor_greys_out_what_cannot_run(tmp_path):
+    diagram = shutil.copy(diagrams('invalid')['no_initial'], tmp_path)
+    result = editor(diagram, 'generate', 'ws={}'.format(tmp_path / 'ws'))
+    assert result.returncode == EXIT_EDITOR_FAILED
+    assert 'error: a state machine has no initial state' in result.stdout
+    result = editor(None, 'build', 'ws={}'.format(tmp_path / 'ws'))
+    assert result.returncode == EXIT_EDITOR_FAILED
+    assert 'error: the document is not saved' in result.stdout

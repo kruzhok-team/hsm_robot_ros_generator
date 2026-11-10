@@ -84,7 +84,7 @@ RESOURCES = ['hsm_controller']
 LIBRARY_DIR = shipped_dir(SCRIPT_TARGET_DIR)
 LIBRARY_FILES = ('__init__.py', 'base_hsm_controller.py', 'constants.py', 'service_utils.py',
                  'debug_caller.py', 'navigation_caller.py', 'pump_caller.py',
-                 'storage_caller.py', 'timer_caller.py', 'wheels_caller.py')
+                 'storage_caller.py', 'timer_caller.py', 'trace.py', 'wheels_caller.py')
 
 # the CyberiadaML error classes derive from the built-in Exception and not from
 # CyberiadaML.Exception, so catching the latter alone catches nothing
@@ -293,6 +293,9 @@ class CodeGenerator:
             init_id = None
             self.__initial = None
             self.__initial_behavior = None
+            # the transitions of the initial pseudostates of the diagram, by the parent id
+            # (None: the machine), for the ids of the trace
+            self.__initial_edges = {}
             for state in self.__graph.get_children():
                 if state.get_type() == CyberiadaML.elementInitial:
                     if init_id is not None:
@@ -315,6 +318,7 @@ class CodeGenerator:
                     source_id = element.get_source_element_id()
                     if source_id == init_id:
                         target_id = element.get_target_element_id()
+                        self.__initial_edges[None] = element.get_id()
                         self.__initial = self.__graph.find_element_by_id(target_id)
                         self.__initial_behavior = element.get_action().get_behavior()
                         if self.__initial_behavior:
@@ -402,6 +406,7 @@ class CodeGenerator:
                 for t in all_transitions:
                     if t.get_source_element_id() == element.get_id():
                         self.__initial_states[parent.get_id()] = t.get_target_element_id()
+                        self.__initial_edges[parent.get_id()] = t.get_id()
                         break
             for element in self.__graph.find_elements_by_type(CyberiadaML.elementCompositeState):
                 if element.get_id() in self.__initial_states:
@@ -683,6 +688,10 @@ class CodeGenerator:
         if behavior:
             name = 'initial' if parent_name is None else '{}_initial'.format(parent_name)
             args.append('action=' + self.__function('on_' + name, behavior))
+        edge = self.__initial_edges.get(None if parent_name is None else parent.get_id())
+        if edge:
+            args.append('id={!r}'.format(edge))
+            self.__elements[edge] = edge
         self.__initial_transitions.append(args)
         return [indent + 'hsmd.Initial(id={!r}),'.format(ident)]
 
@@ -694,6 +703,7 @@ class CodeGenerator:
                 finals += 1
                 ident = self.__pseudostate_id(parent_name, 'final', finals)
                 self.__final_ids[ch.get_id()] = ident
+                self.__elements[ident] = ch.get_id()
                 lines.append(indent + 'hsmd.Final(id={!r}),'.format(ident))
         for ch in parent.get_children():
             if ch.get_type() in (CyberiadaML.elementSimpleState, CyberiadaML.elementCompositeState):
@@ -702,6 +712,7 @@ class CodeGenerator:
 
     def __state_lines(self, state, indent):
         state_name = self.__get_state_name(state)
+        self.__elements[state_name] = state.get_id()
         args = [repr(state.get_name())]
         if state_name != state.get_name():
             args.append('id={!r}'.format(state_name))
@@ -747,6 +758,8 @@ class CodeGenerator:
             trigger_name = self.__unique(names, self.__transition_name(source_name, target_name, name))
             args = [repr(source_name), repr(self.__vertex_id(target)), repr(name)]
             args += self.__reaction_args(a, trigger_name, argument)
+            args.append('id={!r}'.format(t.get_id()))
+            self.__elements[t.get_id()] = t.get_id()
             lines += self.__call_lines(indent, 'hsmd.Transition', args, ',')
         return lines
 
@@ -757,6 +770,8 @@ class CodeGenerator:
         self.__functions = []
         self.__initial_transitions = []
         self.__final_ids = {}
+        # the model id of a state, a final or a transition -> its diagram id, for the trace
+        self.__elements = {}
         # the states go first: they name the pseudostates the transitions refer to
         self.__machine = self.__nested_lines('', 'machine = hsmd.Machine', [repr(self.__sm_name)],
                                              [('states', lambda i: self.__children_lines(self.__graph, None, i)),
@@ -772,6 +787,11 @@ class CodeGenerator:
         self.__w(f, '\n\n')
         for line in self.__machine:
             self.__w(f, line + '\n')
+        self.__w(f, '\n# the diagram id of every model id the trace reports\n')
+        self.__w(f, 'ELEMENTS = {\n')
+        for ident, element in self.__elements.items():
+            self.__w(f, '    {!r}: {!r},\n'.format(ident, element))
+        self.__w(f, '}\n')
 
     def __write_library(self):
         # the generated controller imports the runtime library as hsm_controller.*, so the

@@ -65,11 +65,29 @@ machine = hsmd.Machine('turtle_square_wheels', states=[
             exit=on_st_turtle_square_wheels_go_ahead_exit),
     ]),
 ], transitions=[
-    hsmd.Transition('initial', 'turtle_square_wheels_turn_right'),
+    hsmd.Transition('initial', 'turtle_square_wheels_turn_right', id='n0-n2::n0::n0'),
     hsmd.Transition('turtle_square_wheels.initial', 'turtle_square_wheels_turn_right'),
-    hsmd.Transition('turtle_square_wheels_turn_right', 'turtle_square_wheels_go_ahead', 'TIMER_ELAPSED'),
-    hsmd.Transition('turtle_square_wheels_go_ahead', 'turtle_square_wheels_turn_right', 'TIMER_ELAPSED'),
+    hsmd.Transition(
+        'turtle_square_wheels_turn_right',
+        'turtle_square_wheels_go_ahead',
+        'TIMER_ELAPSED',
+        id='n2::n0::n0-n2::n0::n1'),
+    hsmd.Transition(
+        'turtle_square_wheels_go_ahead',
+        'turtle_square_wheels_turn_right',
+        'TIMER_ELAPSED',
+        id='n2::n0::n1-n2::n0::n0'),
 ])
+
+# the diagram id of every model id the trace reports
+ELEMENTS = {
+    'n0-n2::n0::n0': 'n0-n2::n0::n0',
+    'turtle_square_wheels': 'n2::n0',
+    'turtle_square_wheels_turn_right': 'n2::n0::n0',
+    'turtle_square_wheels_go_ahead': 'n2::n0::n1',
+    'n2::n0::n0-n2::n0::n1': 'n2::n0::n0-n2::n0::n1',
+    'n2::n0::n1-n2::n0::n0': 'n2::n0::n1-n2::n0::n0',
+}
 
 
 class Turtle_square_wheels_HSMController(hsm_controller.base_hsm_controller.BaseHSMController):
@@ -86,7 +104,8 @@ class Turtle_square_wheels_HSMController(hsm_controller.base_hsm_controller.Base
             ('Debug', 'Timer', 'Wheels'),
             False,
             False,
-            False)
+            False,
+            ELEMENTS)
         global Debug
         Debug = hsm_controller.debug_caller.Debug
         global Timer
@@ -94,7 +113,7 @@ class Turtle_square_wheels_HSMController(hsm_controller.base_hsm_controller.Base
         global Wheels
         Wheels = hsm_controller.wheels_caller.Wheels
 
-        dispatcher = hsmd.Dispatcher(machine, namespace=globals())
+        dispatcher = hsmd.Dispatcher(machine, namespace=globals(), trace=self.trace_hook())
         self.__run(dispatcher, dispatcher.start)
         self.__dispatcher = dispatcher
 
@@ -102,19 +121,26 @@ class Turtle_square_wheels_HSMController(hsm_controller.base_hsm_controller.Base
         if eventstr is None or self.__dispatcher is None:
             return
         if arg is None:
-            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr)
+            self.__run(self.__dispatcher, self.__send, eventstr)
         else:
-            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr, value=arg)
+            self.__run(self.__dispatcher, self.__send, eventstr, value=arg)
+
+    def __send(self, eventstr, **parameters):
+        # all the outcomes, the completions the event causes included, for the trace
+        self.__dispatcher.post(eventstr, **parameters)
+        return self.__dispatcher.run()
 
     def __run(self, dispatcher, step, *args, **parameters):
         # an error of the diagram code stops the dispatcher, and so the controller
         try:
-            step(*args, **parameters)
+            outcomes = step(*args, **parameters)
         except hsmd.DispatcherError as e:
             self.get_logger().error('The state machine is stopped: {}'.format(e))
             self.failed = True
+            self.trace_step(dispatcher, [], str(e))
             self.terminate()
             return
+        self.trace_step(dispatcher, outcomes)
         if dispatcher.finished():
             self.terminate()
 

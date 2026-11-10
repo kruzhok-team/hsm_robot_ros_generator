@@ -26,6 +26,8 @@ import sys
 
 import pytest
 
+import hsm_stubs
+
 GENERATOR_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIAGRAMS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'diagrams')
 EXAMPLES_DIR = os.path.join(GENERATOR_DIR, 'examples')
@@ -85,3 +87,21 @@ def generated(tmp_path):
     def _generate(diagram, *args):
         return generate(diagram, tmp_path / 'pkg', *args)
     return _generate
+
+
+@pytest.fixture
+def controller(tmp_path):
+    # generate a diagram and return its controller, driven without ROS2. The results
+    # of the API calls are set before the controller is built, because the entry actions
+    # of the initial state run while it is being built
+    counter = []
+
+    def _controller(diagram, results=None):
+        counter.append(diagram)
+        package = generate(diagram, tmp_path / 'pkg{}'.format(len(counter)))
+        cls, recorder = hsm_stubs.load_controller(package, controller_module(package))
+        for call, value in (results or {}).items():
+            recorder.result(call, value)
+        return cls(), recorder
+    yield _controller
+    hsm_stubs.remove()

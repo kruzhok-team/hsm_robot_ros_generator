@@ -20,6 +20,7 @@
 #
 # -----------------------------------------------------------------------------
 
+import ast
 import filecmp
 import os
 import subprocess
@@ -89,13 +90,28 @@ def test_the_generator_writes_only_into_the_output_directory(tmp_path):
     assert sorted(os.listdir(GENERATOR_DIR)) == before
 
 
+def module_code(path):
+    # the code of a generated module without what belongs to the diagram file: the
+    # comments and the element ids of the trace (ELEMENTS, the ids of the transitions)
+    with open(path) as f:
+        tree = ast.parse(f.read())
+    tree.body = [n for n in tree.body
+                 if not (isinstance(n, ast.Assign) and [getattr(t, 'id', None) for t in n.targets] == ['ELEMENTS'])]
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and getattr(node.func, 'attr', None) == 'Transition':
+            node.keywords = [k for k in node.keywords if k.arg != 'id']
+    return ast.dump(tree)
+
+
 def test_the_legacy_comments_give_the_same_package(tmp_path):
     # the yEd comments Global Parameters and ROS2 HSM Modules are read as CGML_META and
     # CGML_COMPONENT are
     legacy = generate(VALID['legacy_yed'], tmp_path / 'legacy')
     cgml = generate(VALID['turtle-square'], tmp_path / 'cgml')
-    for name in ('package.xml', 'setup.py', os.path.join('hsm_controller', 'turtle_square.py')):
+    for name in ('package.xml', 'setup.py'):
         with open(os.path.join(legacy, name)) as a, open(os.path.join(cgml, name)) as b:
             # the header names the diagram file
             assert [line for line in a if 'graphml' not in line] == \
                 [line for line in b if 'graphml' not in line], '{} differs'.format(name)
+    module = os.path.join('hsm_controller', 'turtle_square.py')
+    assert module_code(os.path.join(legacy, module)) == module_code(os.path.join(cgml, module))

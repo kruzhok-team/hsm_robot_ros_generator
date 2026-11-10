@@ -130,7 +130,7 @@ machine = hsmd.Machine('right_hand_maze_solver', states=[
         ]),
     ]),
 ], transitions=[
-    hsmd.Transition('initial', 'right_hand_maze_solver_solver_go_farward_0'),
+    hsmd.Transition('initial', 'right_hand_maze_solver_solver_go_farward_0', id='e0'),
     hsmd.Transition('right_hand_maze_solver.initial', 'right_hand_maze_solver_solver'),
     hsmd.Transition('right_hand_maze_solver_solver.initial', 'right_hand_maze_solver_solver_go_farward_0'),
     hsmd.Transition(
@@ -142,44 +142,81 @@ machine = hsmd.Machine('right_hand_maze_solver', states=[
     hsmd.Transition(
         'right_hand_maze_solver_solver_go_farward_0',
         'right_hand_maze_solver_solver_stop_02',
-        'COLLISION_WARNING'),
+        'COLLISION_WARNING',
+        id='n2::n0::e0'),
     hsmd.Transition(
         'right_hand_maze_solver_solver_right_turn_go_forward_1',
         'right_hand_maze_solver_solver_go_farward_0',
-        'TIMER_ELAPSED'),
+        'TIMER_ELAPSED',
+        id='n2::n0::e1'),
     hsmd.Transition(
         'right_hand_maze_solver_solver_right_turn_turn_right_1',
         'right_hand_maze_solver_solver_right_turn_stop_11',
-        'TIMER_ELAPSED'),
+        'TIMER_ELAPSED',
+        id='n2::n0::n1::e0'),
     hsmd.Transition(
         'right_hand_maze_solver_solver_left_turn_turn_left_2',
         'right_hand_maze_solver_solver_left_turn_stop_21',
-        'TIMER_ELAPSED'),
+        'TIMER_ELAPSED',
+        id='n2::n0::n2::e0'),
     hsmd.Transition(
         'right_hand_maze_solver_solver_left_turn_stop_21',
         'right_hand_maze_solver_solver_go_farward_0',
-        'STOP_COMPLETED'),
+        'STOP_COMPLETED',
+        id='n2::n0::e2'),
     hsmd.Transition(
         'right_hand_maze_solver_solver_stop_01',
         'right_hand_maze_solver_solver_right_turn_turn_right_1',
-        'STOP_COMPLETED'),
+        'STOP_COMPLETED',
+        id='n2::n0::e3'),
     hsmd.Transition(
         'right_hand_maze_solver_solver_right_turn_stop_11',
         'right_hand_maze_solver_solver_right_turn_go_forward_1',
-        'STOP_COMPLETED'),
+        'STOP_COMPLETED',
+        id='n2::n0::n1::e1'),
     hsmd.Transition(
         'right_hand_maze_solver_solver_go_farward_0',
         'right_hand_maze_solver_solver_stop_01',
-        'RIGHT_OPEN_SPACE'),
+        'RIGHT_OPEN_SPACE',
+        id='n2::n0::e4'),
     hsmd.Transition(
         'right_hand_maze_solver_solver_stop_02',
         'right_hand_maze_solver_solver_left_turn_turn_left_2',
-        'STOP_COMPLETED'),
+        'STOP_COMPLETED',
+        id='n2::n0::e5'),
     hsmd.Transition(
         'right_hand_maze_solver_solver_go_farward_0',
         'right_hand_maze_solver_solver_stop_02',
-        'COLLISION_DETECTED'),
+        'COLLISION_DETECTED',
+        id='n2::n0::e6'),
 ])
+
+# the diagram id of every model id the trace reports
+ELEMENTS = {
+    'e0': 'e0',
+    'right_hand_maze_solver': 'n2',
+    'right_hand_maze_solver_solver': 'n2::n0',
+    'right_hand_maze_solver_solver_go_farward_0': 'n2::n0::n0',
+    'right_hand_maze_solver_solver_right_turn': 'n2::n0::n1',
+    'right_hand_maze_solver_solver_right_turn_go_forward_1': 'n2::n0::n1::n0',
+    'right_hand_maze_solver_solver_right_turn_turn_right_1': 'n2::n0::n1::n1',
+    'right_hand_maze_solver_solver_right_turn_stop_11': 'n2::n0::n1::n2',
+    'right_hand_maze_solver_solver_left_turn': 'n2::n0::n2',
+    'right_hand_maze_solver_solver_left_turn_turn_left_2': 'n2::n0::n2::n0',
+    'right_hand_maze_solver_solver_left_turn_stop_21': 'n2::n0::n2::n1',
+    'right_hand_maze_solver_solver_stop_01': 'n2::n0::n3',
+    'right_hand_maze_solver_solver_stop_02': 'n2::n0::n4',
+    'n2::n0::e0': 'n2::n0::e0',
+    'n2::n0::e1': 'n2::n0::e1',
+    'n2::n0::n1::e0': 'n2::n0::n1::e0',
+    'n2::n0::n2::e0': 'n2::n0::n2::e0',
+    'n2::n0::e2': 'n2::n0::e2',
+    'n2::n0::e3': 'n2::n0::e3',
+    'n2::n0::n1::e1': 'n2::n0::n1::e1',
+    'n2::n0::e4': 'n2::n0::e4',
+    'n2::n0::e5': 'n2::n0::e5',
+    'n2::n0::e6': 'n2::n0::e6',
+}
 
 
 class Right_hand_maze_solver_HSMController(hsm_controller.base_hsm_controller.BaseHSMController):
@@ -196,7 +233,8 @@ class Right_hand_maze_solver_HSMController(hsm_controller.base_hsm_controller.Ba
             ('Debug', 'Navigation', 'Wheels', 'Timer'),
             False,
             False,
-            False)
+            False,
+            ELEMENTS)
         global Debug
         Debug = hsm_controller.debug_caller.Debug
         global Navigation
@@ -206,7 +244,7 @@ class Right_hand_maze_solver_HSMController(hsm_controller.base_hsm_controller.Ba
         global Timer
         Timer = hsm_controller.timer_caller.Timer
 
-        dispatcher = hsmd.Dispatcher(machine, namespace=globals())
+        dispatcher = hsmd.Dispatcher(machine, namespace=globals(), trace=self.trace_hook())
         self.__run(dispatcher, dispatcher.start)
         self.__dispatcher = dispatcher
 
@@ -214,19 +252,26 @@ class Right_hand_maze_solver_HSMController(hsm_controller.base_hsm_controller.Ba
         if eventstr is None or self.__dispatcher is None:
             return
         if arg is None:
-            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr)
+            self.__run(self.__dispatcher, self.__send, eventstr)
         else:
-            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr, value=arg)
+            self.__run(self.__dispatcher, self.__send, eventstr, value=arg)
+
+    def __send(self, eventstr, **parameters):
+        # all the outcomes, the completions the event causes included, for the trace
+        self.__dispatcher.post(eventstr, **parameters)
+        return self.__dispatcher.run()
 
     def __run(self, dispatcher, step, *args, **parameters):
         # an error of the diagram code stops the dispatcher, and so the controller
         try:
-            step(*args, **parameters)
+            outcomes = step(*args, **parameters)
         except hsmd.DispatcherError as e:
             self.get_logger().error('The state machine is stopped: {}'.format(e))
             self.failed = True
+            self.trace_step(dispatcher, [], str(e))
             self.terminate()
             return
+        self.trace_step(dispatcher, outcomes)
         if dispatcher.finished():
             self.terminate()
 

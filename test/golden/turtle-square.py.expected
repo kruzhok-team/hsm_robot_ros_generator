@@ -60,13 +60,39 @@ machine = hsmd.Machine('turtle_square', states=[
         hsmd.State('bottom-left', id='turtle_square_bottom_left', entry=on_st_turtle_square_bottom_left_enter),
     ]),
 ], transitions=[
-    hsmd.Transition('initial', 'turtle_square_top_left'),
+    hsmd.Transition('initial', 'turtle_square_top_left', id='n0-n2::n0::n0'),
     hsmd.Transition('turtle_square.initial', 'turtle_square_top_left'),
-    hsmd.Transition('turtle_square_top_left', 'turtle_square_top_right', 'MOVE_COMPLETED'),
-    hsmd.Transition('turtle_square_top_right', 'turtle_square_bottom_right', 'MOVE_COMPLETED'),
-    hsmd.Transition('turtle_square_bottom_right', 'turtle_square_bottom_left', 'MOVE_COMPLETED'),
-    hsmd.Transition('turtle_square_bottom_left', 'turtle_square_top_left', 'MOVE_COMPLETED'),
+    hsmd.Transition('turtle_square_top_left', 'turtle_square_top_right', 'MOVE_COMPLETED', id='n2::n0::n0-n2::n0::n1'),
+    hsmd.Transition(
+        'turtle_square_top_right',
+        'turtle_square_bottom_right',
+        'MOVE_COMPLETED',
+        id='n2::n0::n1-n2::n0::n2'),
+    hsmd.Transition(
+        'turtle_square_bottom_right',
+        'turtle_square_bottom_left',
+        'MOVE_COMPLETED',
+        id='n2::n0::n2-n2::n0::n3'),
+    hsmd.Transition(
+        'turtle_square_bottom_left',
+        'turtle_square_top_left',
+        'MOVE_COMPLETED',
+        id='n2::n0::n3-n2::n0::n0'),
 ])
+
+# the diagram id of every model id the trace reports
+ELEMENTS = {
+    'n0-n2::n0::n0': 'n0-n2::n0::n0',
+    'turtle_square': 'n2::n0',
+    'turtle_square_top_left': 'n2::n0::n0',
+    'turtle_square_top_right': 'n2::n0::n1',
+    'turtle_square_bottom_right': 'n2::n0::n2',
+    'turtle_square_bottom_left': 'n2::n0::n3',
+    'n2::n0::n0-n2::n0::n1': 'n2::n0::n0-n2::n0::n1',
+    'n2::n0::n1-n2::n0::n2': 'n2::n0::n1-n2::n0::n2',
+    'n2::n0::n2-n2::n0::n3': 'n2::n0::n2-n2::n0::n3',
+    'n2::n0::n3-n2::n0::n0': 'n2::n0::n3-n2::n0::n0',
+}
 
 
 class Turtle_square_HSMController(hsm_controller.base_hsm_controller.BaseHSMController):
@@ -83,7 +109,8 @@ class Turtle_square_HSMController(hsm_controller.base_hsm_controller.BaseHSMCont
             ('Debug', 'Navigation', 'Wheels'),
             False,
             False,
-            False)
+            False,
+            ELEMENTS)
         global Debug
         Debug = hsm_controller.debug_caller.Debug
         global Navigation
@@ -91,7 +118,7 @@ class Turtle_square_HSMController(hsm_controller.base_hsm_controller.BaseHSMCont
         global Wheels
         Wheels = hsm_controller.wheels_caller.Wheels
 
-        dispatcher = hsmd.Dispatcher(machine, namespace=globals())
+        dispatcher = hsmd.Dispatcher(machine, namespace=globals(), trace=self.trace_hook())
         self.__run(dispatcher, dispatcher.start)
         self.__dispatcher = dispatcher
 
@@ -99,19 +126,26 @@ class Turtle_square_HSMController(hsm_controller.base_hsm_controller.BaseHSMCont
         if eventstr is None or self.__dispatcher is None:
             return
         if arg is None:
-            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr)
+            self.__run(self.__dispatcher, self.__send, eventstr)
         else:
-            self.__run(self.__dispatcher, self.__dispatcher.send, eventstr, value=arg)
+            self.__run(self.__dispatcher, self.__send, eventstr, value=arg)
+
+    def __send(self, eventstr, **parameters):
+        # all the outcomes, the completions the event causes included, for the trace
+        self.__dispatcher.post(eventstr, **parameters)
+        return self.__dispatcher.run()
 
     def __run(self, dispatcher, step, *args, **parameters):
         # an error of the diagram code stops the dispatcher, and so the controller
         try:
-            step(*args, **parameters)
+            outcomes = step(*args, **parameters)
         except hsmd.DispatcherError as e:
             self.get_logger().error('The state machine is stopped: {}'.format(e))
             self.failed = True
+            self.trace_step(dispatcher, [], str(e))
             self.terminate()
             return
+        self.trace_step(dispatcher, outcomes)
         if dispatcher.finished():
             self.terminate()
 

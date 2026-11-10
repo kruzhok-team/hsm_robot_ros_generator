@@ -30,22 +30,22 @@ event = None
 EXIT_DIAGRAM_ERROR = 1
 
 
-def on_st_turtle_square_four_corners_top_left_enter():
+def on_st_turtle_square_top_left_enter():
     Navigation.move_to_point(2, 7)
     Debug.println('go to top-left')
 
 
-def on_st_turtle_square_four_corners_top_right_enter():
+def on_st_turtle_square_top_right_enter():
     Navigation.move_to_point(7, 7)
     Debug.println('go to top-right')
 
 
-def on_st_turtle_square_four_corners_bottom_right_enter():
+def on_st_turtle_square_bottom_right_enter():
     Navigation.move_to_point(7, 2)
     Debug.println('go to bottom-right')
 
 
-def on_st_turtle_square_four_corners_bottom_left_enter():
+def on_st_turtle_square_bottom_left_enter():
     Navigation.move_to_point(2, 2)
     Debug.println('go to bottom-left')
 
@@ -54,40 +54,18 @@ machine = hsmd.Machine('turtle_square', states=[
     hsmd.Initial(id='initial'),
     hsmd.State('turtle_square', states=[
         hsmd.Initial(id='turtle_square.initial'),
-        hsmd.State('four_corners', id='turtle_square_four_corners', states=[
-            hsmd.Initial(id='turtle_square_four_corners.initial'),
-            hsmd.State(
-                'top-left',
-                id='turtle_square_four_corners_top_left',
-                entry=on_st_turtle_square_four_corners_top_left_enter),
-            hsmd.State(
-                'top-right',
-                id='turtle_square_four_corners_top_right',
-                entry=on_st_turtle_square_four_corners_top_right_enter),
-            hsmd.State(
-                'bottom-right',
-                id='turtle_square_four_corners_bottom_right',
-                entry=on_st_turtle_square_four_corners_bottom_right_enter),
-            hsmd.State(
-                'bottom-left',
-                id='turtle_square_four_corners_bottom_left',
-                entry=on_st_turtle_square_four_corners_bottom_left_enter),
-        ]),
+        hsmd.State('top-left', id='turtle_square_top_left', entry=on_st_turtle_square_top_left_enter),
+        hsmd.State('top-right', id='turtle_square_top_right', entry=on_st_turtle_square_top_right_enter),
+        hsmd.State('bottom-right', id='turtle_square_bottom_right', entry=on_st_turtle_square_bottom_right_enter),
+        hsmd.State('bottom-left', id='turtle_square_bottom_left', entry=on_st_turtle_square_bottom_left_enter),
     ]),
 ], transitions=[
-    hsmd.Transition('initial', 'turtle_square_four_corners_top_left'),
-    hsmd.Transition('turtle_square.initial', 'turtle_square_four_corners'),
-    hsmd.Transition('turtle_square_four_corners.initial', 'turtle_square_four_corners_top_left'),
-    hsmd.Transition('turtle_square_four_corners_top_left', 'turtle_square_four_corners_top_right', 'MOVE_COMPLETED'),
-    hsmd.Transition(
-        'turtle_square_four_corners_top_right',
-        'turtle_square_four_corners_bottom_right',
-        'MOVE_COMPLETED'),
-    hsmd.Transition(
-        'turtle_square_four_corners_bottom_right',
-        'turtle_square_four_corners_bottom_left',
-        'MOVE_COMPLETED'),
-    hsmd.Transition('turtle_square_four_corners_bottom_left', 'turtle_square_four_corners_top_left', 'MOVE_COMPLETED'),
+    hsmd.Transition('initial', 'turtle_square_top_left'),
+    hsmd.Transition('turtle_square.initial', 'turtle_square_top_left'),
+    hsmd.Transition('turtle_square_top_left', 'turtle_square_top_right', 'MOVE_COMPLETED'),
+    hsmd.Transition('turtle_square_top_right', 'turtle_square_bottom_right', 'MOVE_COMPLETED'),
+    hsmd.Transition('turtle_square_bottom_right', 'turtle_square_bottom_left', 'MOVE_COMPLETED'),
+    hsmd.Transition('turtle_square_bottom_left', 'turtle_square_top_left', 'MOVE_COMPLETED'),
 ])
 
 

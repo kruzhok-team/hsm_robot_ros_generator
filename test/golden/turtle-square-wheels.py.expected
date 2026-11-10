@@ -31,23 +31,21 @@ event = None
 EXIT_DIAGRAM_ERROR = 1
 
 
-def on_st_turtle_square_wheels_go_by_square_turn_right_enter():
-    # PI/2 per 5 sec
+def on_st_turtle_square_wheels_turn_right_enter():
     Wheels.turn_right((math.pi/2)/5)
     Timer.start(5.0)
 
 
-def on_st_turtle_square_wheels_go_by_square_turn_right_exit():
+def on_st_turtle_square_wheels_turn_right_exit():
     Wheels.stop()
 
 
-def on_st_turtle_square_wheels_go_by_square_go_ahead_enter():
-    # 1 meter per sec
+def on_st_turtle_square_wheels_go_ahead_enter():
     Wheels.forward(1.0)
     Timer.start(4.0)
 
 
-def on_st_turtle_square_wheels_go_by_square_go_ahead_exit():
+def on_st_turtle_square_wheels_go_ahead_exit():
     Wheels.stop()
 
 
@@ -55,32 +53,22 @@ machine = hsmd.Machine('turtle_square_wheels', states=[
     hsmd.Initial(id='initial'),
     hsmd.State('turtle_square_wheels', states=[
         hsmd.Initial(id='turtle_square_wheels.initial'),
-        hsmd.State('go_by_square', id='turtle_square_wheels_go_by_square', states=[
-            hsmd.Initial(id='turtle_square_wheels_go_by_square.initial'),
-            hsmd.State(
-                'turn_right',
-                id='turtle_square_wheels_go_by_square_turn_right',
-                entry=on_st_turtle_square_wheels_go_by_square_turn_right_enter,
-                exit=on_st_turtle_square_wheels_go_by_square_turn_right_exit),
-            hsmd.State(
-                'go_ahead',
-                id='turtle_square_wheels_go_by_square_go_ahead',
-                entry=on_st_turtle_square_wheels_go_by_square_go_ahead_enter,
-                exit=on_st_turtle_square_wheels_go_by_square_go_ahead_exit),
-        ]),
+        hsmd.State(
+            'turn_right',
+            id='turtle_square_wheels_turn_right',
+            entry=on_st_turtle_square_wheels_turn_right_enter,
+            exit=on_st_turtle_square_wheels_turn_right_exit),
+        hsmd.State(
+            'go_ahead',
+            id='turtle_square_wheels_go_ahead',
+            entry=on_st_turtle_square_wheels_go_ahead_enter,
+            exit=on_st_turtle_square_wheels_go_ahead_exit),
     ]),
 ], transitions=[
-    hsmd.Transition('initial', 'turtle_square_wheels_go_by_square_turn_right'),
-    hsmd.Transition('turtle_square_wheels.initial', 'turtle_square_wheels_go_by_square'),
-    hsmd.Transition('turtle_square_wheels_go_by_square.initial', 'turtle_square_wheels_go_by_square_turn_right'),
-    hsmd.Transition(
-        'turtle_square_wheels_go_by_square_turn_right',
-        'turtle_square_wheels_go_by_square_go_ahead',
-        'TIMER_ELAPSED'),
-    hsmd.Transition(
-        'turtle_square_wheels_go_by_square_go_ahead',
-        'turtle_square_wheels_go_by_square_turn_right',
-        'TIMER_ELAPSED'),
+    hsmd.Transition('initial', 'turtle_square_wheels_turn_right'),
+    hsmd.Transition('turtle_square_wheels.initial', 'turtle_square_wheels_turn_right'),
+    hsmd.Transition('turtle_square_wheels_turn_right', 'turtle_square_wheels_go_ahead', 'TIMER_ELAPSED'),
+    hsmd.Transition('turtle_square_wheels_go_ahead', 'turtle_square_wheels_turn_right', 'TIMER_ELAPSED'),
 ])
 
 

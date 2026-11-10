@@ -148,10 +148,10 @@ def test_navigation_implies_wheels(controller):
 
 def test_example_cycles_through_the_square(controller):
     node, recorder = controller(EXAMPLES['turtle-square'])
-    assert hsm_stubs.leaf_state(node) == 'turtle_square_four_corners_top_left'
+    assert hsm_stubs.leaf_state(node) == 'turtle_square_top_left'
     for expected in ('top_right', 'bottom_right', 'bottom_left', 'top_left'):
         node.dispatch_event('MOVE_COMPLETED', None)
-        assert hsm_stubs.leaf_state(node) == 'turtle_square_four_corners_' + expected
+        assert hsm_stubs.leaf_state(node) == 'turtle_square_' + expected
     assert len(recorder.arguments('Navigation.move_to_point')) == 5
 
 
